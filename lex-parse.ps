@@ -1,0 +1,1722 @@
+%!PS-Adobe-3.0
+%%Title: FjolnirForritLexer.g, FjolnirEiningLexer.g, FjolnirParser.g, FjolnirTransformer.g
+%%For: 
+%%Creator: a2ps version 4.13
+%%CreationDate: Tue Nov 18 19:49:54 2003
+%%BoundingBox: 24 24 571 818
+%%DocumentData: Clean7Bit
+%%Orientation: Landscape
+%%Pages: 7
+%%PageOrder: Ascend
+%%DocumentMedia: A4 595 842 0 () ()
+%%DocumentNeededResources: font Courier
+%%+ font Courier-Bold
+%%+ font Courier-BoldOblique
+%%+ font Courier-Oblique
+%%+ font Helvetica
+%%+ font Helvetica-Bold
+%%+ font Symbol
+%%+ font Times-Bold
+%%DocumentProcessColors: Black 
+%%DocumentSuppliedResources: procset a2ps-a2ps-hdr
+%%+ procset a2ps-black+white-Prolog
+%%+ encoding ISO-8859-1Encoding
+%%EndComments
+/a2psdict 200 dict def
+a2psdict begin
+%%BeginProlog
+%%Copyright: (c) 1988, 89, 90, 91, 92, 93 Miguel Santana
+%%Copyright: (c) 1995, 96, 97, 98 Akim Demaille, Miguel Santana
+% Check PostScript language level.
+/languagelevel where {
+  pop /gs_languagelevel languagelevel def
+} {
+  /gs_languagelevel 1 def
+} ifelse
+
+% EPSF import as in the Red Book
+/BeginInclude {
+  /b4_Inc_state save def    		% Save state for cleanup
+  /dict_count countdictstack def	% Count objects on dict stack
+  /op_count count 1 sub def		% Count objects on operand stack 
+  userdict begin
+    0 setgray 0 setlinecap
+    1 setlinewidth 0 setlinejoin
+    10 setmiterlimit [ ] 0 setdash newpath
+    gs_languagelevel 1 ne {
+      false setstrokeadjust false setoverprint 
+    } if
+} bind def
+
+/EndInclude {
+  count op_count sub { pos } repeat	% Clean up stacks
+  countdictstack dict_count sub { end } repeat
+  b4_Inc_state restore
+} bind def
+
+/BeginEPSF {
+  BeginInclude
+  /showpage { } def
+} bind def
+
+/EndEPSF {
+  EndInclude
+} bind def
+
+% Page prefeed
+/page_prefeed {         % bool -> -
+  statusdict /prefeed known {
+    statusdict exch /prefeed exch put
+  } {
+    pop
+  } ifelse
+} bind def
+
+/deffont {
+  findfont exch scalefont def
+} bind def
+
+/reencode_font {
+  findfont reencode 2 copy definefont pop def
+} bind def
+
+% Function c-show (str => -)
+% centers text only according to x axis.
+/c-show { 
+  dup stringwidth pop
+  2 div neg 0 rmoveto
+  show
+} bind def
+
+% Function l-show (str => -)
+% prints texts so that it ends at currentpoint
+/l-show {
+  dup stringwidth pop neg 
+  0 
+  rmoveto show
+} bind def
+
+% center-fit show (str w => -)
+% show centered, and scale currentfont so that the width is less than w
+/cfshow {
+  exch dup stringwidth pop
+  % If the title is too big, try to make it smaller
+  3 2 roll 2 copy
+  gt
+  { % if, i.e. too big
+    exch div
+    currentfont exch scalefont setfont
+  } { % ifelse
+    pop pop 
+  }
+  ifelse
+  c-show			% center title
+} bind def
+
+% Return the y size of the current font
+% - => fontsize
+/currentfontsize {
+  currentfont /FontMatrix get 3 get 1000 mul
+} bind def
+
+% reencode the font
+% <encoding-vector> <fontdict> -> <newfontdict>
+/reencode { %def
+  dup length 5 add dict begin
+    { %forall
+      1 index /FID ne 
+      { def }{ pop pop } ifelse
+    } forall
+    /Encoding exch def
+
+    % Use the font's bounding box to determine the ascent, descent,
+    % and overall height; don't forget that these values have to be
+    % transformed using the font's matrix.
+    % We use `load' because sometimes BBox is executable, sometimes not.
+    % Since we need 4 numbers an not an array avoid BBox from being executed
+    /FontBBox load aload pop
+    FontMatrix transform /Ascent exch def pop
+    FontMatrix transform /Descent exch def pop
+    /FontHeight Ascent Descent sub def
+
+    % Define these in case they're not in the FontInfo (also, here
+    % they're easier to get to.
+    /UnderlinePosition 1 def
+    /UnderlineThickness 1 def
+    
+    % Get the underline position and thickness if they're defined.
+    currentdict /FontInfo known {
+      FontInfo
+      
+      dup /UnderlinePosition known {
+	dup /UnderlinePosition get
+	0 exch FontMatrix transform exch pop
+	/UnderlinePosition exch def
+      } if
+      
+      dup /UnderlineThickness known {
+	/UnderlineThickness get
+	0 exch FontMatrix transform exch pop
+	/UnderlineThickness exch def
+      } if
+      
+    } if
+    currentdict 
+  end 
+} bind def
+
+% Function print line number (<string> # -)
+/# {
+  gsave
+    sx cw mul neg 2 div 0 rmoveto
+    f# setfont
+    c-show
+  grestore
+} bind def
+
+% -------- Some routines to enlight plain b/w printings ---------
+
+% Underline
+% width --
+/dounderline {
+  currentpoint
+  gsave
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    0 rlineto
+    stroke
+  grestore
+} bind def
+
+% Underline a string
+% string --
+/dounderlinestring {
+  stringwidth pop
+  dounderline
+} bind def
+
+/UL {
+  /ul exch store
+} bind def
+
+% Draw a box of WIDTH wrt current font
+% width --
+/dobox {
+  currentpoint
+  gsave
+    newpath
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    dup 0 rlineto
+    0 currentfont /FontHeight get currentfontsize mul rlineto
+    neg 0 rlineto
+    closepath
+    stroke
+  grestore
+} bind def
+
+/BX {
+  /bx exch store
+} bind def
+
+% Box a string
+% string --
+/doboxstring {
+  stringwidth pop
+  dobox
+} bind def
+
+%
+% ------------- Color routines ---------------
+%
+/FG /setrgbcolor load def
+
+% Draw the background
+% width --
+/dobackground {
+  currentpoint
+  gsave
+    newpath
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    dup 0 rlineto
+    0 currentfont /FontHeight get currentfontsize mul rlineto
+    neg 0 rlineto
+    closepath
+    bgcolor aload pop setrgbcolor
+    fill
+  grestore
+} bind def
+
+% Draw bg for a string
+% string --
+/dobackgroundstring {
+  stringwidth pop
+  dobackground
+} bind def
+
+
+/BG {
+  dup /bg exch store
+  { mark 4 1 roll ] /bgcolor exch store } if
+} bind def
+
+
+/Show {
+  bg { dup dobackgroundstring } if
+  ul { dup dounderlinestring } if
+  bx { dup doboxstring } if
+  show
+} bind def
+
+% Function T(ab), jumps to the n-th tabulation in the current line
+/T {
+  cw mul x0 add
+  bg { dup currentpoint pop sub dobackground } if
+  ul { dup currentpoint pop sub dounderline } if
+  bx { dup currentpoint pop sub dobox } if
+  y0 moveto
+} bind def
+
+% Function n: move to the next line
+/n {
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+% Function N: show and move to the next line
+/N {
+  Show
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+/S {
+  Show
+} bind def
+
+%%BeginResource: procset a2ps-a2ps-hdr 2.0 2
+%%Copyright: (c) 1988, 89, 90, 91, 92, 93 Miguel Santana
+%%Copyright: (c) 1995, 96, 97, 98 Akim Demaille, Miguel Santana
+% Function title: prints page header.
+% <ct> <rt> <lt> are passed as argument
+/title { 
+  % 1. Draw the background
+  x v get y v get moveto
+  gsave
+    0 th 2 div neg rmoveto 
+    th setlinewidth
+    0.95 setgray
+    pw 0 rlineto stroke
+  grestore
+  % 2. Border it
+  gsave
+    0.7 setlinewidth
+    pw 0 rlineto
+    0 th neg rlineto
+    pw neg 0 rlineto
+    closepath stroke
+  grestore
+  % stk: ct rt lt
+  x v get y v get th sub 1 add moveto
+%%IncludeResource: font Helvetica
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  % 3. The left title
+  gsave
+    dup stringwidth pop fnfs 0.8 mul add exch % leave space took on stack
+    fnfs 0.8 mul hm rmoveto
+    show			% left title
+  grestore
+  exch
+  % stk: ct ltw rt
+  % 4. the right title
+  gsave
+    dup stringwidth pop fnfs 0.8 mul add exch % leave space took on stack
+    dup
+    pw exch stringwidth pop fnfs 0.8 mul add sub
+    hm
+    rmoveto
+    show			% right title
+  grestore
+  % stk: ct ltw rtw
+  % 5. the center title
+  gsave
+    pw 3 1 roll
+    % stk: ct pw ltw rtw
+    3 copy 
+    % Move to the center of the left room
+    sub add 2 div hm rmoveto
+    % What is the available space in here?
+    add sub fnfs 0.8 mul sub fnfs 0.8 mul sub
+    % stk: ct space_left
+%%IncludeResource: font Helvetica-Bold
+  fHelvetica-Bold fnfs scalefont setfont
+    cfshow
+  grestore
+} bind def
+
+% Function border: prints virtual page border
+/border { %def
+  gsave				% print four sides
+    0 setgray
+    x v get y v get moveto
+    0.7 setlinewidth		% of the square
+    pw 0 rlineto
+    0 ph neg rlineto
+    pw neg 0 rlineto
+    closepath stroke
+  grestore
+} bind def
+
+% Function water: prints a water mark in background
+/water { %def
+  gsave
+    scx scy moveto rotate
+%%IncludeResource: font Times-Bold
+  fTimes-Bold 100 scalefont setfont
+    .97 setgray
+    dup stringwidth pop 2 div neg -50 rmoveto
+    show
+  grestore
+} bind def
+
+% Function rhead: prints the right header
+/rhead {  %def
+  lx ly moveto
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  l-show
+} bind def
+
+% Function footer (cf rf lf -> -)
+/footer {
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  dx dy moveto
+  show
+
+  snx sny moveto
+  l-show
+  
+  fnx fny moveto
+  c-show
+} bind def
+%%EndResource
+%%BeginResource: procset a2ps-black+white-Prolog 2.0 1
+
+% Function T(ab), jumps to the n-th tabulation in the current line
+/T {
+  cw mul x0 add y0 moveto
+} bind def
+
+% Function n: move to the next line
+/n { %def
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+% Function N: show and move to the next line
+/N {
+  Show
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+}  bind def
+
+/S {
+  Show
+} bind def
+
+/p {
+  false UL
+  false BX
+  fCourier bfs scalefont setfont
+  Show
+} bind def
+
+/sy {
+  false UL
+  false BX
+  fSymbol bfs scalefont setfont
+  Show
+} bind def
+
+/k {
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/K {
+  false UL
+  false BX
+  fCourier-Bold bfs scalefont setfont
+  Show
+} bind def
+
+/c {
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/C {
+  false UL
+  false BX
+  fCourier-BoldOblique bfs scalefont setfont
+  Show
+} bind def
+
+/l {
+  false UL
+  false BX
+  fCourier-Bold bfs scalefont setfont
+  Show
+} bind def
+
+/L {
+  false UL
+  false BX
+  fCourier-Bold bfs scalefont setfont
+  Show
+} bind def
+
+/str{
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/e{
+  false UL
+  true BX
+  fCourier-BoldOblique bfs scalefont setfont
+  Show
+} bind def
+
+%%EndResource
+%%EndProlog
+%%BeginSetup
+%%IncludeResource: font Courier
+%%IncludeResource: font Courier-Oblique
+%%IncludeResource: font Courier-Bold
+%%IncludeResource: font Symbol
+%%IncludeResource: font Courier-BoldOblique
+%%BeginResource: encoding ISO-8859-1Encoding
+/ISO-8859-1Encoding [
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclam /quotedbl /numbersign /dollar /percent /ampersand /quoteright 
+/parenleft /parenright /asterisk /plus /comma /minus /period /slash 
+/zero /one /two /three /four /five /six /seven 
+/eight /nine /colon /semicolon /less /equal /greater /question 
+/at /A /B /C /D /E /F /G 
+/H /I /J /K /L /M /N /O 
+/P /Q /R /S /T /U /V /W 
+/X /Y /Z /bracketleft /backslash /bracketright /asciicircum /underscore 
+/quoteleft /a /b /c /d /e /f /g 
+/h /i /j /k /l /m /n /o 
+/p /q /r /s /t /u /v /w 
+/x /y /z /braceleft /bar /braceright /asciitilde /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclamdown /cent /sterling /currency /yen /brokenbar /section 
+/dieresis /copyright /ordfeminine /guillemotleft /logicalnot /hyphen /registered /macron 
+/degree /plusminus /twosuperior /threesuperior /acute /mu /paragraph /bullet 
+/cedilla /onesuperior /ordmasculine /guillemotright /onequarter /onehalf /threequarters /questiondown 
+/Agrave /Aacute /Acircumflex /Atilde /Adieresis /Aring /AE /Ccedilla 
+/Egrave /Eacute /Ecircumflex /Edieresis /Igrave /Iacute /Icircumflex /Idieresis 
+/Eth /Ntilde /Ograve /Oacute /Ocircumflex /Otilde /Odieresis /multiply 
+/Oslash /Ugrave /Uacute /Ucircumflex /Udieresis /Yacute /Thorn /germandbls 
+/agrave /aacute /acircumflex /atilde /adieresis /aring /ae /ccedilla 
+/egrave /eacute /ecircumflex /edieresis /igrave /iacute /icircumflex /idieresis 
+/eth /ntilde /ograve /oacute /ocircumflex /otilde /odieresis /divide 
+/oslash /ugrave /uacute /ucircumflex /udieresis /yacute /thorn /ydieresis 
+] def
+%%EndResource
+% Initialize page description variables.
+/sh 595 def
+/sw 842 def
+/llx 24 def
+/urx 818 def
+/ury 571 def
+/lly 24 def
+/#copies 1 def
+/th 15.000000 def
+/fnfs 11 def
+/bfs 6.426693 def
+/cw 3.856016 def
+
+% Dictionary for ISO-8859-1 support
+/iso1dict 7 dict begin
+  /fCourier ISO-8859-1Encoding /Courier reencode_font
+  /fCourier-Bold ISO-8859-1Encoding /Courier-Bold reencode_font
+  /fCourier-BoldOblique ISO-8859-1Encoding /Courier-BoldOblique reencode_font
+  /fCourier-Oblique ISO-8859-1Encoding /Courier-Oblique reencode_font
+  /fHelvetica ISO-8859-1Encoding /Helvetica reencode_font
+  /fHelvetica-Bold ISO-8859-1Encoding /Helvetica-Bold reencode_font
+  /fTimes-Bold ISO-8859-1Encoding /Times-Bold reencode_font
+currentdict end def
+/bgcolor [ 0 0 0 ] def
+/bg false def
+/ul false def
+/bx false def
+% The font for line numbering
+/f# /Helvetica findfont bfs .6 mul scalefont def
+/fSymbol /Symbol findfont def
+/hm fnfs 0.25 mul def
+/pw
+   cw 101.400000 mul
+def
+/ph
+   505.780736 th add
+def
+/pmw urx llx sub pw 2 mul sub 1 div def
+/pmh 0 def
+/v 0 def
+/x [
+  0
+  dup pmw add pw add
+] def
+/y [
+  pmh ph add 0 mul ph add
+  dup
+] def
+/scx sw 2 div def
+/scy sh 2 div def
+/snx urx def
+/sny lly 2 add def
+/dx llx def
+/dy sny def
+/fnx scx def
+/fny dy def
+/lx snx def
+/ly ury fnfs 0.8 mul sub def
+/sx 5 def
+/tab 8 def
+/x0 0 def
+/y0 0 def
+%%EndSetup
+
+%%Page: (1-2) 1
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (header "pre_include_hpp" {) p n
+0 T (#include <antlr/TokenStreamSelector.hpp>) N
+0 T (#include "utils.h") N
+0 T (}) N
+(5) # () N
+0 T (header "pre_include_cpp" {) N
+0 T (#pragma warning\( disable : 4251 4267 4101 4267 \)) N
+0 T (}) N
+0 T () N
+(10) # (options {) N
+0 T () S 8 T (language="Cpp";) N
+0 T () S 8 T (namespace="ff";) N
+0 T () S 8 T (namespaceStd="std";) N
+0 T () S 8 T (namespaceAntlr="antlr";) N
+(15) # (}) N
+0 T () N
+0 T (/** FjolnirForritLexer er lesgreinir sem vinnur \341) N
+0 T ( *  Fj\366lnis-forritum utan eininganna sj\341lfra. Hann) N
+0 T ( *  lesgreinir einingara\360ger\360ir en um lei\360 og hann rekst) N
+(20) # ( *  \341 einingu, sem afmarkast af opnum slaufusviga \('{'\)) N
+0 T ( *  \375tir hann einingalesgreini \(FjolnirEiningLexer\) \341 stafla) N
+0 T ( *  TokenStreamSelector eintaksins.) N
+0 T ( */) N
+0 T (class FjolnirForritLexer extends Lexer;) N
+(25) # (options {) N
+0 T () S 8 T (k = 2;) N
+0 T () S 8 T (charVocabulary = '\\3'..'\\377';) N
+0 T () S 8 T (exportVocab = FjolnirForrit;) N
+0 T (}) N
+(30) # () N
+0 T ({) N
+0 T (protected:) N
+0 T () S 8 T (antlr::TokenStreamSelector* selector;) N
+0 T () N
+(35) # (public:) N
+0 T () S 8 T (void initialize\(antlr::TokenStreamSelector * sel\) {) N
+0 T () S 8 T () S 16 T (selector = sel;) N
+0 T () S 8 T (}) N
+0 T (}) N
+(40) # () N
+0 T (EIN_SEMIKOMMA) N
+0 T () S 8 T (: ';') N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(45) # (EIN_JAFNTOG) N
+0 T () S 8 T (: '=') N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (EIN_MINNA) N
+(50) # () S 8 T (: '<') N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (EIN_SVIGIOPNA) N
+0 T () S 8 T (: '\(') N
+(55) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T (EIN_SVIGILOKA) N
+0 T () S 8 T (: '\)') N
+0 T () S 8 T (;) N
+(60) # () N
+0 T () N
+0 T (/* Einingaa\360ger\360ir */) N
+0 T () S 8 T () N
+0 T (EIN_ITRUN) S 16 T () S 24 T (:) S 32 T ('!' ;) N
+(65) # (EIN_INNFLUTT) S 16 T (:) S 24 T ('*' ;) N
+0 T (EIN_SAMSETNING) S 16 T (:) S 24 T (':' ;) N
+0 T (EIN_HLIDSETNING) S 16 T (:) S 24 T ('+' ;) N
+0 T (EIN_ITRUDHLIDS) S 16 T (:) S 24 T ('&' ;) N
+0 T () N
+(70) # (EIN_OPNASLAUFU) N
+0 T () S 8 T (: '{' { selector->push\("eininglexer"\); }) N
+0 T () S 8 T (;) N
+0 T () N
+0 T (/* N\366fn og strengir */) N
+(75) # (EIN_STRENGUR) N
+0 T () S 8 T (: '"'! \( ~\('"'|'\\\\'\) | StyriStafur[false] \)* '"'!) N
+0 T () S 8 T (;) N
+0 T () N
+(FjolnirForritLexer.g) (Page 1/2) (Nov 04, 03 18:34) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (protected) p n
+(80) # (StyriStafur [bool expand=true]) N
+0 T () S 8 T (: \( '\\\\' ~'$' | "\\\\$" HexStafur HexStafur \)) N
+0 T () S 8 T () S 16 T ({) N
+0 T () S 8 T () S 16 T () S 24 T (std::string temp;) N
+0 T () S 8 T () S 16 T () S 24 T (if \(expand\) {) N
+(85) # () S 8 T () S 16 T () S 24 T () S 32 T (temp = $getText;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T ($setText\(styriStafur\(temp\)\);) N
+0 T () S 8 T () S 16 T () S 24 T (}) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (;) N
+(90) # () S 8 T () N
+0 T (protected) N
+0 T (HexStafur) N
+0 T () S 8 T (: '0'..'9' | 'A'..'F' | 'a'..'f') N
+0 T () S 8 T (;) N
+(95) # () N
+0 T (protected) N
+0 T (NafnStafur) N
+0 T () S 8 T (: ~\( ' ' | '\(' | '\)' | '[' | ']' | '{' | '}' | ',' | ';' | '.') N
+0 T () S 8 T (   | '+' | '-' | '*' | '/' | '%' | '!' | '&' | '=' | '?' | '<' | '>' | '|' | ':' | '^' ) N
+0 T (| '@') N
+(100) # () S 8 T (   | '\\3'..'\\31' | '0'..'9' | '"' \)) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (EIN_NAFN) N
+0 T () S 8 T (: NafnStafur \(NafnStafur /* skv. handb\363k eru t\366lust. nafnst. | '0'..'9' */ \)*) N
+(105) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T () N
+0 T (/* Whitespace og comment */) N
+0 T () N
+(110) # (WS) N
+0 T () S 8 T (: \('\\t' | ' ' | EndOfLine {newline\(\);} \)+ {$setType\(antlr::Token::SKIP\);};) N
+0 T () N
+0 T (COMMENT) N
+0 T () S 8 T (: ";;" \(~\('\\n' | '\\r'\)\)* EndOfLine {$setType\(antlr::Token::SKIP\); newline\(\); };) N
+(115) # () N
+0 T () N
+0 T (/* Hj\341lparreglur */) N
+0 T () N
+0 T (protected) N
+(120) # (EndOfLine) N
+0 T () S 8 T (: \(options{generateAmbigWarnings = false;}:) N
+0 T () S 8 T () S 16 T ("\\r\\n") N
+0 T () S 8 T (|) S 16 T ('\\r') N
+0 T () S 8 T (|) S 16 T ('\\n') N
+(125) # () S 8 T (\);) N
+0 T () S 8 T () S 16 T () N
+0 T () S 8 T () N
+(FjolnirForritLexer.g) (Page 2/2) (Nov 04, 03 18:34) title
+border
+grestore
+(Printed by ) rhead
+(FjolnirForritLexer.g) (1/7) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1-2) 2
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (header "post_include_hpp" {) p n
+0 T (#include <antlr/TokenStreamSelector.hpp>) N
+0 T (#include "utils.h") N
+0 T (}) N
+(5) # () N
+0 T (header "pre_include_cpp" {) N
+0 T (#pragma warning\( disable : 4251 4267 4101 4267 \)) N
+0 T (}) N
+0 T () N
+(10) # (options {) N
+0 T () S 8 T (language="Cpp";) N
+0 T () S 8 T (namespace="ff";) N
+0 T () S 8 T (namespaceStd="std";) N
+0 T () S 8 T (namespaceAntlr="antlr";) N
+(15) # () S 8 T (genHashLines = true;) N
+0 T (}) N
+0 T () N
+0 T (/** FjolnirEiningLexer er lesgreinir sem vinnur \341 einingaskilgreiningum) N
+0 T ( *  \355 Fj\366lnis-forritum, \376.e. \376ess k\363\360a sem er innan slaufusviga.) N
+(20) # ( *  \336egar hann s\351r lokun \341 \363opnu\360um slaufusviga \('}'\) poppar hann af) N
+0 T ( *  "input-selector" hla\360anum og me\360 \376v\355 f\346rist stj\363rn lesgreiningarinnar) N
+0 T ( *  aftur yfir til FjolnirForritLexer, sem lesgreinir t\341kn utan) N
+0 T ( *  eininganna \(s.s. einingara\360ger\360ir\).) N
+0 T ( */) N
+(25) # (class FjolnirEiningLexer extends Lexer;) N
+0 T () N
+0 T (options {) N
+0 T () S 8 T (k = 7; /* lengst er ANNARS,ANNARSEF */) N
+0 T () S 8 T (charVocabulary = '\\3'..'\\377';) N
+(30) # () S 8 T (importVocab = FjolnirForrit;) N
+0 T () S 8 T (exportVocab = Fjolnir;) N
+0 T (}) N
+0 T () N
+0 T (tokens {) N
+(35) # () S 8 T (EIN_LOKASLAUFU;) N
+0 T () S 8 T (ADGERD_7; ADGERD_6; ADGERD_5; ADGERD_4; ADGERD_3; ADGERD_2; ADGERD_1;) N
+0 T (}) N
+0 T () N
+0 T ({) N
+(40) # (protected:) N
+0 T () S 8 T (int nestedSlaufur;) N
+0 T () S 8 T (antlr::TokenStreamSelector* selector;) N
+0 T () S 8 T () N
+0 T (public:) N
+(45) # () S 8 T (void initialize\(antlr::TokenStreamSelector * sel\) {) N
+0 T () S 8 T () S 16 T (selector = sel;) N
+0 T () S 8 T () S 16 T (nestedSlaufur = 0;) N
+0 T () S 8 T (}) N
+0 T (}) N
+(50) # () N
+0 T (/* Lykilor\360. ANTLR s\351r sj\341lfkrafa um a\360 strengfastar \355 lesgreins-) N
+0 T ( * og m\341ll\375singunni fari \355 s\351rstaka t\366flu og eru strengir \372r henni) N
+0 T ( * \341vallt au\360kenndir sem lykilor\360 frekar en n\366fn.) N
+0 T ( */) N
+(55) # (L_ANNARS) S 16 T (:) S 24 T ("annars") S 40 T (;) N
+0 T (L_ANNARSEF) S 16 T (:) S 24 T ("annarsef") S 40 T (;) N
+0 T (L_BREYTA) S 16 T (:) S 24 T ("breyta") S 40 T (;) N
+0 T (L_EDA) S 8 T () S 16 T (:) S 24 T ("e\360a") S 32 T () S 40 T (;) N
+0 T (L_EFLOK) S 8 T () S 16 T (:) S 24 T ("eflok") S 32 T () S 40 T (;) N
+(60) # (L_EF) S 8 T () S 16 T (:) S 24 T ("ef") S 32 T () S 40 T (;) N
+0 T (L_EKKI) S 8 T () S 16 T (:) S 24 T ("ekki") S 32 T () S 40 T (;) N
+0 T (L_FYRIR) S 8 T () S 16 T (:) S 24 T ("fyrir") S 32 T () S 40 T (;) N
+0 T (L_INNFLUTT) S 16 T (:) S 24 T ("innflutt") S 40 T (;) N
+0 T (L_KOSTUR) S 16 T (:) S 24 T ("kostur") S 40 T (;) N
+(65) # (L_LYKKJA) S 16 T (:) S 24 T ("lykkja") S 40 T (;) N
+0 T (L_LYKKJULOK) S 16 T (:) S 24 T ("lykkjulok") S 40 T (;) N
+0 T (L_MEDAN) S 8 T () S 16 T (:) S 24 T ("me\360an") S 32 T () S 40 T (;) N
+0 T (L_OG) S 8 T () S 16 T (:) S 24 T ("og") S 32 T () S 40 T (;) N
+0 T (L_SKILA) S 8 T () S 16 T (:) S 24 T ("skila") S 32 T () S 40 T (;) N
+(70) # (L_STADVAER) S 16 T (:) S 24 T ("sta\360v\346r") S 40 T (;) N
+0 T (L_STEF) S 8 T () S 16 T (:) S 24 T ("stef") S 32 T () S 40 T (;) N
+0 T (L_STOFN) S 8 T () S 16 T (:) S 24 T ("stofn") S 32 T () S 40 T (;) N
+0 T (L_STOFNLOK) S 16 T (:) S 24 T ("stofnlok") S 40 T (;) N
+0 T (L_UR) S 8 T () S 16 T (:) S 24 T ("\372r") S 32 T () S 40 T (;) N
+(75) # (L_UT) S 8 T () S 16 T (:) S 24 T ("\372t") S 32 T () S 40 T (;) N
+0 T (L_VAL) S 8 T () S 16 T (:) S 24 T ("val") S 32 T () S 40 T (;) N
+0 T (L_VALLOK) S 16 T (:) S 24 T ("vallok") S 40 T (;) N
+0 T (L_THA) S 8 T () S 16 T (:) S 24 T ("\376\341") S 32 T () S 40 T (;) N
+(FjolnirEiningLexer.g) (Page 1/4) (Nov 18, 03 19:01) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p n
+(80) # (/* Sleppum Fj\366lnir 2 constructum \355 bili) N
+0 T (L_HLUTUR) S 16 T (:) S 24 T ("hlutur") S 40 T (;) N
+0 T (L_HLUTLOK) S 16 T (:) S 24 T ("hlutlok") S 40 T (;) N
+0 T (L_ARFUR) S 8 T () S 16 T (:) S 24 T ("arfur") S 32 T () S 40 T (;) N
+0 T (L_BOD) S 8 T () S 16 T (:) S 24 T ("bo\360") S 32 T () S 40 T (;) N
+(85) # (L_THESSI) S 16 T (:) S 24 T ("\376essi") S 32 T () S 40 T (;) N
+0 T (*/) N
+0 T () N
+0 T (/* Virkjar og fr\341tekin t\341kn */) N
+0 T () N
+(90) # (protected) N
+0 T (INNSETNING) S 16 T () S 24 T (: "->") S 32 T (;) N
+0 T () N
+0 T (protected) N
+0 T (GILDISVEITING) S 16 T (: ":=") S 24 T (;) N
+(95) # () N
+0 T (SVIGI_OPNA) S 16 T () S 24 T (: '\(') S 32 T (;) N
+0 T (SVIGI_LOKA) S 16 T () S 24 T (: '\)') S 32 T (;) N
+0 T (SEMIKOMMA) S 16 T () S 24 T (: ';') S 32 T (;) N
+0 T (KOMMA) S 8 T () S 16 T () S 24 T (: ',') S 32 T (;) N
+(100) # (HORNKLOFI_OPNA) S 16 T (: '[') S 24 T (;) N
+0 T (HORNKLOFI_LOKA) S 16 T (: ']') S 24 T (;) N
+0 T (PUNKTUR) S 8 T () S 16 T () S 24 T (: '.') S 32 T (;) N
+0 T (PUNKTURPUNKTUR) S 16 T (: "..") S 24 T (;) N
+0 T () N
+(105) # (/* Lesfastar */) N
+0 T () S 8 T () N
+0 T (STAFFASTI) N
+0 T () S 8 T (: '\\''! \( ~'\\\\' | StyriStafur \) '\\''!) N
+0 T () S 8 T (;) N
+(110) # () N
+0 T (STRENGFASTI) N
+0 T () S 8 T (: '"'! \( ~\('"'|'\\\\'\) | StyriStafur[false] \)* '"'!) N
+0 T () S 8 T (;) N
+0 T () N
+(115) # (protected) N
+0 T (StyriStafur [bool expand=true]) N
+0 T () S 8 T (: \( '\\\\' ~'$' | "\\\\$" HexStafur HexStafur \)) N
+0 T () S 8 T () S 16 T ({) N
+0 T () S 8 T () S 16 T () S 24 T (std::string temp;) N
+(120) # () S 8 T () S 16 T () S 24 T (if \(expand\) {) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (temp = $getText;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T ($setText\(styriStafur\(temp\)\);) N
+0 T () S 8 T () S 16 T () S 24 T (}) N
+0 T () S 8 T () S 16 T (}) N
+(125) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T (protected) N
+0 T (HexStafur) N
+0 T () S 8 T (: '0'..'9' | 'A'..'F' | 'a'..'f') N
+(130) # () S 8 T (;) N
+0 T () S 8 T () S 16 T () N
+0 T (/* \336essi regla notar "Syntactic predicate" \355 ANTLR til a\360 sko\360a) N
+0 T ( * fram \355 strauminn og taka \341kv\366r\360un um hvort vi\360 lesgreinum heilt\366lu,) N
+0 T ( * fleytit\366lu, "->", ":=", a\360ger\360arnafn e\360a fj\366ldat\366lu) N
+(135) # ( *) N
+0 T ( * \336etta gerir okkur kleyft a\360 lesgreina r\351tt fyrirb\346ri eins og "---",) N
+0 T ( * "->>", ":=+-++" o.s.frv.) N
+0 T ( */) N
+0 T (INNSETN_GILDISV_ADGERD_EDA_TALA) N
+(140) # () S 8 T ({ int ft; }) N
+0 T () S 8 T (: \( \('-'\)* \('0'..'9'\)+ '.' \)=> FLEYTITALA {$setType\(FLEYTITALA\); }) N
+0 T () S 8 T (| \( \('-'\)* \('0'..'9' | '$'\)\)=> HEILTALA {$setType\(HEILTALA\);}) N
+0 T () S 8 T (| \( "->" EkkiAdgerdaStafur\)=> INNSETNING {$setType\(INNSETNING\);}) N
+0 T () S 8 T (| \( ":=" EkkiAdgerdaStafur\)=> GILDISVEITING {$setType\(GILDISVEITING\);}) N
+(145) # () S 8 T (| ft=ADGERD {$setType\(ft\);}) N
+0 T () S 8 T (| FJOLDATALA {$setType\(FJOLDATALA\);}) N
+0 T () S 8 T (;) N
+0 T () S 8 T () S 16 T () N
+0 T (protected) N
+(150) # (FJOLDATALA) N
+0 T () S 8 T (: '$' \(HexStafur\)+) N
+0 T () S 8 T (| \('0'..'9'\)+) N
+0 T () S 8 T (;) N
+0 T () N
+(155) # (protected) S 16 T () N
+0 T (HEILTALA) N
+(FjolnirEiningLexer.g) (Page 2/4) (Nov 18, 03 19:01) title
+border
+grestore
+(Printed by ) rhead
+(FjolnirEiningLexer.g) (2/7) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (3-4) 3
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T (: \('-'\)* FJOLDATALA) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(160) # (protected) N
+0 T (FLEYTITALA) N
+0 T () S 8 T (: \('-'\)* \('0'..'9'\)+ '.' \('0'..'9'\)* \(\('e'|'E'\) \('+'|'-'\)? \('0'..'9'\)+\)?) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(165) # (TOMAGILDI) N
+0 T () S 8 T (: "[]") N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T () S 8 T () N
+(170) # (/* N\366fn og a\360ger\360an\366fn */) N
+0 T () S 8 T () N
+0 T (protected) N
+0 T (AdgerdaStafur) N
+0 T () S 8 T (: \( '+' | '-' | '*' | '/' | '%' | '!' | '&' | '=') N
+(175) # () S 8 T (  | '?' | '<' | '>' | '|' | ':' | '^' | '@' \)) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (/* Hj\341lparregla f. predicates */) N
+0 T (protected) N
+(180) # (EkkiAdgerdaStafur) N
+0 T () S 8 T (: ~\( '+' | '-' | '*' | '/' | '%' | '!' | '&' | '=') N
+0 T () S 8 T (  | '?' | '<' | '>' | '|' | ':' | '^' | '@' \)) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(185) # (protected) N
+0 T (ADGERD returns [int forgangsToken]) N
+0 T () S 8 T (: \(AdgerdaStafur\)+) N
+0 T () S 8 T () S 16 T ({) N
+0 T () S 8 T () S 16 T () S 24 T (switch \(text[_begin]\) {) N
+(190) # () S 8 T () S 16 T () S 24 T (case '^': forgangsToken = ADGERD_7; break;) N
+0 T () S 8 T () S 16 T () S 24 T (case '!':) N
+0 T () S 8 T () S 16 T () S 24 T (case '?':) N
+0 T () S 8 T () S 16 T () S 24 T (case '@': forgangsToken = ADGERD_6; break;) N
+0 T () S 8 T () S 16 T () S 24 T (case '*':) N
+(195) # () S 8 T () S 16 T () S 24 T (case '/':) N
+0 T () S 8 T () S 16 T () S 24 T (case '%':) N
+0 T () S 8 T () S 16 T () S 24 T (case '&': forgangsToken = ADGERD_5; break;) N
+0 T () S 8 T () S 16 T () S 24 T (case '+':) N
+0 T () S 8 T () S 16 T () S 24 T (case '-':) N
+(200) # () S 8 T () S 16 T () S 24 T (case '|': forgangsToken = ADGERD_4; break;) N
+0 T () S 8 T () S 16 T () S 24 T (case '<':) N
+0 T () S 8 T () S 16 T () S 24 T (case '>':) N
+0 T () S 8 T () S 16 T () S 24 T (case '=': forgangsToken = ADGERD_3; break;) N
+0 T () S 8 T () S 16 T () S 24 T (case ':': forgangsToken = ADGERD_2; break; /* vinstri tengin a\360ger\360 */) N
+(205) # () S 8 T () S 16 T () S 24 T (default:  forgangsToken = ADGERD_1; break;) N
+0 T () S 8 T () S 16 T () S 24 T (}) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (| '\\\\'! \( NafnStafur | AdgerdaStafur \)+ { forgangsToken = ADGERD_1; }) N
+0 T () S 8 T (;) N
+(210) # () N
+0 T (protected) N
+0 T (NafnStafur) N
+0 T () S 8 T (: ~\( ' ' | '\(' | '\)' | '[' | ']' | '{' | '}' | ',' | ';' | '.') N
+0 T () S 8 T (   | '+' | '-' | '*' | '/' | '%' | '!' | '&' | '=' | '?' | '<' | '>' | '|' | ':' | '^' ) N
+0 T (| '@') N
+(215) # () S 8 T (   | '\\'' /* vi\360b\363t arnar */) N
+0 T () S 8 T (   | '\\3'..'\\31' | '0'..'9' | '"' \)) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (protected) N
+(220) # (EkkiNafnStafur) N
+0 T () S 8 T (: \( ' ' | '\(' | '\)' | '[' | ']' | '{' | '}' | ',' | ';' | '.') N
+0 T () S 8 T (   | '+' | '-' | '*' | '/' | '%' | '!' | '&' | '=' | '?' | '<' | '>' | '|' | ':' | '^' ) N
+0 T (| '@') N
+0 T () S 8 T (   | '\\'' /* vi\360b\363t arnar */) N
+0 T () S 8 T (   | '\\3'..'\\31' | '0'..'9' | '"' \)) N
+(225) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T (NAFN) N
+0 T () S 8 T (: NafnStafur \(NafnStafur | '0'..'9' \)*) N
+0 T () S 8 T (;) N
+(230) # () N
+0 T () S 8 T () N
+0 T (/* Lok einingar og innri einingar */) N
+(FjolnirEiningLexer.g) (Page 3/4) (Nov 18, 03 19:01) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p n
+0 T (SLAUFA_OPNA) N
+(235) # () S 8 T (: '{' { nestedSlaufur++; }) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (SLAUFA_LOKA) N
+0 T () S 8 T (: '}' {) N
+(240) # () S 8 T () S 16 T (if \(0 == nestedSlaufur\) {) N
+0 T () S 8 T () S 16 T () S 24 T (selector->pop\(\);) N
+0 T () S 8 T () S 16 T () S 24 T ($setType\(EIN_LOKASLAUFU\);) N
+0 T () S 8 T () S 16 T (} else {) N
+0 T () S 8 T () S 16 T () S 24 T (nestedSlaufur--;) N
+(245) # () S 8 T () S 16 T (}) N
+0 T () S 8 T (};) N
+0 T () N
+0 T (/*EIN_LOKASLAUFU) N
+0 T () S 8 T (: '}' { selector->pop\(\); }) N
+(250) # () S 8 T (;*/) N
+0 T () N
+0 T () N
+0 T (/* Whitespace og comment */) N
+0 T () N
+(255) # (WS) N
+0 T () S 8 T (: \('\\t' | ' ' | EndOfLine {newline\(\);} \)+ {$setType\(antlr::Token::SKIP\);};) N
+0 T () N
+0 T (COMMENT) N
+0 T () S 8 T (: ";;" \(~\('\\n' | '\\r'\)\)* EndOfLine {$setType\(antlr::Token::SKIP\); newline\(\); };) N
+(260) # () N
+0 T () N
+0 T (/* Hj\341lparreglur */) N
+0 T () N
+0 T (protected) N
+(265) # (EndOfLine) N
+0 T () S 8 T (: \(options{generateAmbigWarnings = false;}:) N
+0 T () S 8 T () S 16 T ("\\r\\n") N
+0 T () S 8 T (|) S 16 T ('\\r') N
+0 T () S 8 T (|) S 16 T ('\\n') N
+(270) # () S 8 T (\);) N
+0 T () S 8 T () S 16 T () N
+0 T () N
+0 T () S 8 T () N
+(FjolnirEiningLexer.g) (Page 4/4) (Nov 18, 03 19:01) title
+border
+grestore
+(Printed by ) rhead
+(FjolnirEiningLexer.g) (3/7) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1-2) 4
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (header "pre_include_cpp" {) p n
+0 T (#pragma warning\( disable : 4251 4267 4101 4267 \)) N
+0 T (}) N
+0 T () N
+(5) # (options {) N
+0 T () S 8 T (language="Cpp";) N
+0 T () S 8 T (namespace="ff";) N
+0 T () S 8 T (namespaceStd="std";) N
+0 T () S 8 T (namespaceAntlr="antlr";) N
+(10) # () S 8 T (genHashLines = true;) N
+0 T (}) N
+0 T () N
+0 T (class FjolnirParser extends Parser;) N
+0 T () N
+(15) # (options {) N
+0 T () S 8 T (k = 3;) N
+0 T () S 8 T (importVocab = Fjolnir;) N
+0 T () S 8 T (buildAST = true;) N
+0 T (}) N
+(20) # (tokens {) N
+0 T () S 8 T (NAFNARUNA; SKILGREININGAR; SEGDARUNA; LYKKJUSKILYRDI;) N
+0 T () S 8 T (EINUNDARADGERD; LISTI; FYLKISGILDISVEITING;) N
+0 T (}) N
+0 T () N
+(25) # (forrit) N
+0 T () S 8 T (: \( \(forritsVeiting | einingarVeiting\) EIN_SEMIKOMMA! \)* EOF) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (forritsVeiting) N
+(30) # () S 8 T (: EIN_STRENGUR EIN_MINNA^ EIN_NAFN eining) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (einingarVeiting) N
+0 T () S 8 T (: \(EIN_STRENGUR | EIN_NAFN\) EIN_JAFNTOG^ eining) N
+(35) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T (eining) N
+0 T () S 8 T (: einHlidsett) N
+0 T () S 8 T (;) N
+(40) # () S 8 T () N
+0 T (einItrunarhlidsett) N
+0 T () S 8 T (: einHlidsett \(EIN_ITRUDHLIDS^ einHlidsett\)*) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(45) # (einHlidsett) N
+0 T () S 8 T (: einSamsett \(EIN_HLIDSETNING^ einSamsett\)*) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (einSamsett) N
+(50) # () S 8 T (: einInnflutt \(EIN_SAMSETNING^ einInnflutt\)*) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (einInnflutt) N
+0 T () S 8 T (: einItrud \(EIN_INNFLUTT^ einItrud\)*) N
+(55) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T (einItrud) N
+0 T () S 8 T (: EIN_ITRUN^ einItrud | grunnEining) N
+0 T () S 8 T (;) N
+(60) # () S 8 T () N
+0 T (grunnEining) N
+0 T () S 8 T (: EIN_STRENGUR) N
+0 T () S 8 T (| EIN_NAFN) N
+0 T () S 8 T (| EIN_SVIGIOPNA! eining EIN_SVIGILOKA!) N
+(65) # () S 8 T (| EIN_OPNASLAUFU^ \(vorpun\)* EIN_LOKASLAUFU!) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (protected) N
+0 T (adgerd) N
+(70) # () S 8 T (: \(ADGERD_1 | ADGERD_2 | ADGERD_3 | ADGERD_4 | ADGERD_5 | ADGERD_6 | ADGERD_7\)) N
+0 T () S 8 T () S 16 T ({ #adgerd->setType\(ADGERD\); }) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (vorpun) N
+(75) # () S 8 T (: \(NAFN | adgerd\) INNSETNING^) N
+0 T () S 8 T () S 16 T (\( NAFN | adgerd | L_BREYTA /*| L_BOD*/ | stefskilgreining /*| hlutskilgreining*) N
+0 T (/ \)) N
+0 T () S 8 T (;) N
+(FjolnirParser.g) (Page 1/4) (Nov 08, 03 19:52) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () N
+0 T (stefskilgreining) N
+(80) # () S 8 T (: L_STEF^ SVIGI_OPNA! nafnaruna SEMIKOMMA! nafnaruna SVIGI_LOKA!) N
+0 T () S 8 T () S 16 T (skilgreiningar) N
+0 T () S 8 T () S 16 T (L_STOFN! segdaruna L_STOFNLOK!) N
+0 T () S 8 T () S 16 T (\(innriTextaeining\)?) N
+0 T () S 8 T (;) N
+(85) # () S 8 T () N
+0 T (nafnaruna) N
+0 T () S 8 T (: \(NAFN \(KOMMA! NAFN\)*\)?) N
+0 T () S 8 T () S 16 T ({#nafnaruna = #\([NAFNARUNA,"nafnaruna"], #nafnaruna\); }) N
+0 T () S 8 T (;) N
+(90) # () S 8 T () N
+0 T (skilgreiningar) N
+0 T () S 8 T (: \(skilgr_innflutt | skilgr_stadvaer\)*) N
+0 T () S 8 T () S 16 T ({ #skilgreiningar = #\([SKILGREININGAR,"skilgreiningar"], #skilgreiningar\); }) N
+0 T () S 8 T (;) N
+(95) # () S 8 T () N
+0 T (skilgr_innflutt) N
+0 T () S 8 T (: L_INNFLUTT^ nafnaruna_ekkitom) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(100) # (skilgr_stadvaer) N
+0 T () S 8 T (: L_STADVAER^ frumstillingaruna) N
+0 T () S 8 T (;) N
+0 T () N
+0 T (nafnaruna_ekkitom) N
+(105) # () S 8 T (: NAFN \(KOMMA! NAFN\)*) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (frumstillingaruna) N
+0 T () S 8 T (: \(NAFN | skilgrOgGildisv\) \(KOMMA! \(NAFN | skilgrOgGildisv\)\)*) N
+(110) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T (skilgrOgGildisv) N
+0 T () S 8 T (: NAFN GILDISVEITING^ segd) N
+0 T () S 8 T (;) N
+(115) # () S 8 T () N
+0 T (innriTextaeining) N
+0 T () S 8 T (: SLAUFA_OPNA^ \(innraStef\)* SLAUFA_LOKA!) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(120) # (innraStef) N
+0 T () S 8 T (: NAFN INNSETNING^ stefskilgreining) N
+0 T () S 8 T (;) N
+0 T () N
+0 T (/*) S 8 T () N
+(125) # (hlutskilgreining) N
+0 T () S 8 T (: L_HLUTUR^ SVIGI_OPNA! SEMIKOMMA! nafnaruna SVIGI_LOKA!) N
+0 T () S 8 T () S 16 T (arfskilgreining) N
+0 T () S 8 T () S 16 T (\(bodskilgreining\)*) N
+0 T () S 8 T () S 16 T (L_HLUTLOK!) N
+(130) # () S 8 T (;) N
+0 T () S 8 T () S 16 T () N
+0 T (arfskilgreining) N
+0 T () S 8 T (: \(L_ARFUR! NAFN\)? {#arfskilgreining = #\([L_ARFUR,"arfur"], #arfskilgreining\); }) N
+0 T () S 8 T (;) N
+(135) # () S 8 T () N
+0 T (bodskilgreining) N
+0 T () S 8 T (: L_BOD^ NAFN SVIGI_OPNA! nafnaruna SEMIKOMMA! nafnaruna SVIGI_LOKA!) N
+0 T () S 8 T () S 16 T (skilgreiningar) N
+0 T () S 8 T () S 16 T (L_STOFN! segdaruna L_STOFNLOK!) N
+(140) # () S 8 T () S 16 T (\(innriTextaeining\)?) N
+0 T () S 8 T (;) N
+0 T (*/) N
+0 T () S 8 T () N
+0 T (segdaruna) N
+(145) # () S 8 T (: \(segd \(KOMMA! segd\)*\)?) N
+0 T () S 8 T () S 16 T ({#segdaruna = #\([SEGDARUNA,"seg\360aruna"], #segdaruna\); }) N
+0 T () S 8 T (;) N
+0 T () N
+0 T (segd) N
+(150) # () S 8 T (: ogSegd \( options {greedy=true;}: L_EDA^ ogSegd\)*) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (ogSegd) N
+0 T () S 8 T (: ekkiSegd \( options {greedy=true;}: L_OG^ ekkiSegd\)*) N
+(155) # () S 8 T (;) N
+(FjolnirParser.g) (Page 2/4) (Nov 08, 03 19:52) title
+border
+grestore
+(Printed by ) rhead
+(FjolnirParser.g) (4/7) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (3-4) 5
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () N
+0 T (ekkiSegd) N
+0 T () S 8 T (: L_EKKI^ ekkiSegd | adgerd_1) N
+0 T () S 8 T (;) N
+(160) # () N
+0 T (/* virkjar og forgangur \376eirra */) N
+0 T () N
+0 T (adgerd_1) N
+0 T () S 8 T (: adgerd_2 \( options {greedy=true;}: ADGERD_1^ adgerd_2 { ##->setType\(ADGERD\); } \)*) N
+(165) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T (adgerd_2) N
+0 T () S 8 T (/* vinstri tengi\360 */) N
+0 T () S 8 T (: adgerd_3 \( options {greedy=true;}: ADGERD_2^ adgerd_2 { ##->setType\(ADGERD\); } \)?) N
+(170) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T (adgerd_3) N
+0 T () S 8 T (: adgerd_4 \( options {greedy=true;}: ADGERD_3^ adgerd_4 { ##->setType\(ADGERD\); } \)*) N
+0 T () S 8 T (;) N
+(175) # () S 8 T () N
+0 T (adgerd_4) N
+0 T () S 8 T (: adgerd_5 \( options {greedy=true;}: ADGERD_4^ adgerd_5 { ##->setType\(ADGERD\); } \)*) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(180) # (adgerd_5) N
+0 T () S 8 T (: adgerd_6 \( options {greedy=true;}: ADGERD_5^ adgerd_6 { ##->setType\(ADGERD\); } \)*) N
+0 T () S 8 T (;) N
+0 T () N
+0 T (adgerd_6) N
+(185) # () S 8 T (: adgerd_7 \( options {greedy=true;}: ADGERD_6 adgerd_7 { ##->setType\(ADGERD\); } \)*) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (adgerd_7) N
+0 T () S 8 T (: hlutfylkissegd \( options {greedy=true;}: ADGERD_7^ hlutfylkissegd { ##->setType\(ADGER) N
+0 T (D\); } \)*) N
+(190) # () S 8 T (;) N
+0 T () N
+0 T (hlutfylkissegd) N
+0 T () S 8 T (: \(smasegd HORNKLOFI_OPNA\)=> smasegd) N
+0 T () S 8 T () S 16 T (\( options {greedy=true;}: HORNKLOFI_OPNA^ segdaruna HORNKLOFI_LOKA! \)+) N
+(195) # () S 8 T () S 16 T (\( GILDISVEITING^ segd {#GILDISVEITING->setType\(FYLKISGILDISVEITING\); } \)?) N
+0 T () S 8 T (| smasegd) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (/* Fyrir Fj\366lnir 2 samh\346fingu:) N
+(200) # (hlutfylkissegd) N
+0 T () S 8 T (: smasegd \( \(HORNKLOFI_OPNA | PUNKTUR\)=>) N
+0 T () S 8 T () S 16 T (\( options {greedy=true;}:) N
+0 T () S 8 T () S 16 T (  HORNKLOFI_OPNA^ segdaruna HORNKLOFI_LOKA!) N
+0 T () S 8 T () S 16 T (| PUNKTUR^ NAFN) N
+(205) # () S 8 T () S 16 T () S 24 T (\(SVIGI_OPNA^ segdaruna SEMIKOKMMA! segdaruna SVIGI_LOKA! \)?) N
+0 T () S 8 T () S 16 T (\)+) N
+0 T () S 8 T () S 16 T (\( GILDISVEITING^ segd \)?) N
+0 T () S 8 T (\)?) N
+0 T () S 8 T (;) N
+(210) # (*/) N
+0 T () S 8 T () N
+0 T (smasegd) N
+0 T () S 8 T (: nafnsegd) N
+0 T () S 8 T (| \(adgerd SVIGI_OPNA\)=> adgerd SVIGI_OPNA^ SEMIKOMMA! segdaruna SVIGI_LOKA!) N
+(215) # () S 8 T (| einundaradgerd) N
+0 T () S 8 T (| efsegd) N
+0 T () S 8 T (| HORNKLOFI_OPNA^ segdaruna HORNKLOFI_LOKA! { ##->setType\(LISTI\); }) N
+0 T () S 8 T (| lykkjusegd) N
+0 T () S 8 T (| L_STOFN^ segdaruna L_STOFNLOK!) N
+(220) # () S 8 T (| valsegd) N
+0 T () S 8 T (| L_UT) N
+0 T () S 8 T (| L_SKILA^ segd) N
+0 T () S 8 T (| SVIGI_OPNA! segd SVIGI_LOKA!) N
+0 T () S 8 T (| STRENGFASTI) N
+(225) # () S 8 T (| STAFFASTI | FJOLDATALA | HEILTALA | FLEYTITALA | TOMAGILDI) N
+0 T () S 8 T (| L_STEF^ NAFN SVIGI_OPNA! FJOLDATALA SEMIKOMMA! FJOLDATALA SVIGI_LOKA!) N
+0 T (/*) S 8 T (| L_THESSI */) N
+0 T (/*) S 8 T (| L_ARFUR */) N
+0 T () S 8 T (;) N
+(230) # () S 8 T () N
+0 T (einundaradgerd) N
+0 T () S 8 T (:) N
+(FjolnirParser.g) (Page 3/4) (Nov 08, 03 19:52) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T (\( ADGERD_1^ | ADGERD_2^ | ADGERD_3^ | ADGERD_4^ | ADGERD_5^ | ADGERD_6^ | ADGERD_7^ \)) N
+0 T () S 8 T () S 16 T (smasegd { #einundaradgerd->setType\(EINUNDARADGERD\); }) N
+(235) # () S 8 T (;) N
+0 T () S 8 T () S 16 T () N
+0 T (nafnsegd) N
+0 T () S 8 T (: NAFN) N
+0 T () S 8 T (| NAFN GILDISVEITING^ segd) N
+(240) # () S 8 T (| NAFN SVIGI_OPNA^ nafnaruna SEMIKOMMA! segdaruna SVIGI_LOKA!) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (lykkjusegd) N
+0 T () S 8 T (: L_LYKKJA^ segdaruna L_LYKKJULOK!) N
+(245) # () S 8 T (| L_MEDAN^ segd L_LYKKJA! segdaruna L_LYKKJULOK!) N
+0 T () S 8 T (| L_FYRIR^ SVIGI_OPNA! segdaruna SEMIKOMMA! segd SEMIKOMMA! segdaruna SVIGI_LOKA!) N
+0 T () S 8 T () S 16 T (L_LYKKJA! segdaruna L_LYKKJULOK!) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(250) # (efsegd) N
+0 T () S 8 T (: L_EF^ segd L_THA! segdaruna \(annarsef\)* \(L_ANNARS! segdaruna\)? L_EFLOK!) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (annarsef) N
+(255) # () S 8 T (: L_ANNARSEF^ segd L_THA! segdaruna) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (valsegd) N
+0 T () S 8 T (: L_VAL^ segd L_UR! \(valkostur\)* \(L_ANNARS! segdaruna\)? L_VALLOK!) N
+(260) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T (valkostur) N
+0 T () S 8 T (: L_KOSTUR^ valfasti_range L_THA! segdaruna) N
+0 T () S 8 T (;) N
+(265) # () S 8 T () N
+0 T (valfasti_range) N
+0 T () S 8 T (: valfasti \(PUNKTURPUNKTUR^ valfasti\)?) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(270) # (/* m\341 ekki vera fj\366ldatala h\351r l\355ka? */) N
+0 T (valfasti) N
+0 T () S 8 T (: STAFFASTI | HEILTALA) N
+0 T () S 8 T (;) N
+0 T () S 8 T () S
+(FjolnirParser.g) (Page 4/4) (Nov 08, 03 19:52) title
+border
+grestore
+(Printed by ) rhead
+(FjolnirParser.g) (5/7) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1-2) 6
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (header "pre_include_cpp" {) p n
+0 T (#pragma warning\( disable : 4251 4267 4101 4267 \)) N
+0 T (}) N
+0 T () N
+(5) # (options {) N
+0 T () S 8 T (language="Cpp";) N
+0 T () S 8 T (namespace="ff";) N
+0 T () S 8 T (namespaceStd="std";) N
+0 T () S 8 T (namespaceAntlr="antlr";) N
+(10) # () S 8 T (genHashLines = true;) N
+0 T (}) N
+0 T () N
+0 T (class FjolnirTransformer extends TreeParser;) N
+0 T () N
+(15) # (options {) N
+0 T () S 8 T (k = 3;) N
+0 T () S 8 T (importVocab = FjolnirParser;) N
+0 T () S 8 T (buildAST = true;) N
+0 T (}) N
+(20) # () N
+0 T (forrit) N
+0 T () S 8 T (: \( veiting \)*) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(25) # (veiting) N
+0 T () S 8 T (: #\(EIN_MINNA EIN_STRENGUR EIN_NAFN eining\)) N
+0 T () S 8 T (| #\(EIN_JAFNTOG \(EIN_STRENGUR | EIN_NAFN\) eining\)) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(30) # (eining) N
+0 T () S 8 T (: #\(EIN_ITRUD eining\)) N
+0 T () S 8 T (| #\(EIN_ITRUDHLIDS eining eining\)) N
+0 T () S 8 T (| #\(EIN_HLIDSETNING eining eining\)) N
+0 T () S 8 T (| #\(EIN_SAMSETNING eining eining\)) N
+(35) # () S 8 T (| #\(EIN_INNFLUTT eining eining\)) N
+0 T () S 8 T (| EIN_STRENGUR) N
+0 T () S 8 T (| EIN_NAFN) N
+0 T () S 8 T (| #\(EIN_OPNASLAUFU \(vorpun\)*\)) N
+0 T () S 8 T (;) N
+(40) # () S 8 T () N
+0 T (vorpun) N
+0 T () S 8 T (: #\(INNSETNING \(NAFN | ADGERD\) minnissvaedi\)) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(45) # (minnissvaedi) N
+0 T () S 8 T (: NAFN | ADGERD | L_BREYTA | L_BOD | stefskilgreining | hlutskilgreining) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (stefskilgreining) N
+(50) # () S 8 T (: #\(L_STEF nafnaruna nafnaruna skilgreiningar segdaruna \(innriTextaeining\)?\)) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (nafnaruna) N
+0 T () S 8 T (: #\(NAFNARUNA \(NAFN\)*\)) N
+(55) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T (nafnaruna_ekkitom) N
+0 T () S 8 T (: \(NAFN\)+) N
+0 T () S 8 T (;) N
+(60) # () S 8 T () N
+0 T (/* Eftirfarandi regla sameinar m\366rg tilvik af "sta\360v\346r" og "innflutt") N
+0 T (   breytuyfirl\375singarrunum \355 eitt tilvik af hvorri */) N
+0 T (skilgreiningar!) N
+0 T () S 8 T ({) N
+(65) # () S 8 T () S 16 T (antlr::RefAST innflutt = #\([L_INNFLUTT,"innflutt"]\);) N
+0 T () S 8 T () S 16 T (antlr::RefAST stadvaerar = #\([L_STADVAER,"sta\360v\346r"]\);) N
+0 T () S 8 T (}) N
+0 T () S 8 T (: #\(dummy:SKILGREININGAR) N
+0 T () S 8 T () S 16 T (\() S 24 T (#\(L_INNFLUTT nr:nafnaruna_ekkitom\)) N
+(70) # () S 8 T () S 16 T () S 24 T ({ innflutt->addChild\(#nr\); }) N
+0 T () S 8 T () S 16 T (|) S 24 T (#\(L_STADVAER fr:frumstillingaruna\)) N
+0 T () S 8 T () S 16 T () S 24 T ({ stadvaerar->addChild\(#fr\); }) N
+0 T () S 8 T () S 16 T (\)*) N
+0 T () S 8 T () S 16 T ({) N
+(75) # () S 8 T () S 16 T () S 24 T (## = #\([SKILGREININGAR,"skilgreiningar"]\);) N
+0 T () S 8 T () S 16 T () S 24 T (##->setFirstChild\(innflutt\);) N
+0 T () S 8 T () S 16 T () S 24 T (innflutt->setNextSibling\(stadvaerar\);) N
+0 T () S 8 T () S 16 T () S 24 T (stadvaerar->setNextSibling\(antlr::nullAST\);) N
+(FjolnirTransformer.g) (Page 1/4) (Nov 18, 03 18:29) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () S 16 T (}) N
+(80) # () S 8 T (  \)) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (frumstillingaruna) N
+0 T () S 8 T (: \( NAFN | #\(GILDISVEITING NAFN segd\) \)+) N
+(85) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T (innriTextaeining) N
+0 T () S 8 T (: #\(SLAUFA_OPNA \(innraStef\)* \)) N
+0 T () S 8 T (;) N
+(90) # () S 8 T () N
+0 T (innraStef) N
+0 T () S 8 T (: #\(INNSETNING NAFN stefskilgreining\)) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(95) # (hlutskilgreining) N
+0 T () S 8 T (: #\(L_HLUTUR nafnaruna #\(L_ARFUR \(NAFN\)?\) \(bodskilgreining\)* \)) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (bodskilgreining) N
+(100) # () S 8 T (: #\(L_BOD NAFN nafnaruna nafnaruna skilgreiningar segdaruna \(innriTextaeining\)?\)) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (segdaruna) N
+0 T () S 8 T (: #\(SEGDARUNA \(segd\)*\)) N
+(105) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T (segd) N
+0 T () S 8 T (: #\(L_OG segd segd\)) N
+0 T () S 8 T (| #\(L_EDA segd segd\)) N
+(110) # () S 8 T (| #\(L_EKKI segd\)) N
+0 T () S 8 T (|! #\(ADGERD s1:segd s2:segd\)) N
+0 T () S 8 T () S 16 T ({) N
+0 T () S 8 T () S 16 T () S 24 T (#ADGERD->setType\(NAFN\);) N
+0 T () S 8 T () S 16 T () S 24 T (## = #\([SVIGI_OPNA,"\("], ADGERD, #\([NAFNARUNA,"inn-\372t"]\), #\([SEGDARUNA,) N
+0 T ("a\360ger\360arvi\360f"], s1, s2\)\);) N
+(115) # () S 8 T () S 16 T (}) N
+0 T () S 8 T (| hlutfylkissegd) N
+0 T () S 8 T (| #\(GILDISVEITING NAFN segd\)) N
+0 T () S 8 T (|! #\(EINUNDARADGERD s:segd\)) N
+0 T () S 8 T () S 16 T ({) S 24 T (#EINUNDARADGERD->setType\(NAFN\);) N
+(120) # () S 8 T () S 16 T () S 24 T (## = #\([SVIGI_OPNA,"\("], EINUNDARADGERD, #\([NAFNARUNA,"inn-\372t"]\), #\([SE) N
+0 T (GDARUNA,"einundara\360ger\360arvi\360f"],s\)\);) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (|! \(#\(SVIGI_OPNA ADGERD\)\)=> #\(foo:SVIGI_OPNA ADGERD sr:segdaruna\)) N
+0 T () S 8 T () S 16 T ({) S 24 T (#ADGERD->setType\(NAFN\);) N
+0 T () S 8 T () S 16 T () S 24 T (## = #\([SVIGI_OPNA,"\("], ADGERD, #\([NAFNARUNA,"inn-\372t"]\), sr\);) N
+(125) # () S 8 T () S 16 T (}) N
+0 T () S 8 T (| #\(SVIGI_OPNA NAFN nafnaruna segdaruna\)) N
+0 T () S 8 T (|! #\(LISTI slist:segdaruna\)) N
+0 T (        {) N
+0 T (            /* breytir [a,b,c] \355 :\(;a,:\(;b,c\)\) */) N
+(130) # (            antlr::RefAST current = #slist->getFirstChild\(\);) N
+0 T () S 8 T () S 16 T () S 24 T (if \(current == antlr::nullAST\) {) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (## = #\([TOMAGILDI,"[]"]\);) N
+0 T () S 8 T () S 16 T () S 24 T (} else {) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (antlr::RefAST subtree = #\([SEGDARUNA,"gildisvi\360f"]\);) N
+(135) # () S 8 T () S 16 T () S 24 T () S 32 T (antlr::RefAST root = #\([SVIGI_OPNA,"\("], [NAFN,":"], #\([NAFNARU) N
+0 T (NA,"inn-\372t"]\), subtree\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (while \(current != antlr::nullAST\) {) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (subtree->addChild\(current\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (antlr::RefAST temp1 = current->getNextSibling\(\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (current->setNextSibling\(antlr::nullAST\);) N
+(140) # () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (current = temp1;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (if \(current != antlr::nullAST\) {) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T () S 48 T (antlr::RefAST newSubtree = #\([SEGDARUNA,"gildis) N
+0 T (vi\360f"]\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T () S 48 T (antlr::RefAST temp2 = #\([SVIGI_OPNA,"\("], [NAFN) N
+0 T (,":"], #\([NAFNARUNA,"inn-\372t"]\), newSubtree\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T () S 48 T (subtree->addChild\(temp2\);) N
+(145) # () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T () S 48 T (subtree = newSubtree;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (}) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (}) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (subtree->addChild\( #\([TOMAGILDI,"[]"]\) \);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (## = root;) N
+(150) # () S 8 T () S 16 T () S 24 T (}) N
+0 T (        }) N
+(FjolnirTransformer.g) (Page 2/4) (Nov 18, 03 18:29) title
+border
+grestore
+(Printed by ) rhead
+(FjolnirTransformer.g) (6/7) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (3-4) 7
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T (| #\(L_STOFN segdaruna\)) N
+0 T () S 8 T (| #\(L_EF segd segdaruna \(#\(L_ANNARSEF segd segdaruna\)\)* \(efannars:segdaruna\)?\)) N
+0 T () S 8 T () S 16 T ({ if \(antlr::nullAST == efannars\) ##->addChild\(#\([SEGDARUNA,"seg\360aruna"], [TOMA) N
+0 T (GILDI,"[]"]\)\); }) N
+(155) # () S 8 T (| lykkjusegd) N
+0 T () S 8 T (| #\(L_VAL segd \(#\(L_KOSTUR valfasti_range segdaruna\)\)* \(valannars:segdaruna\)?\)) N
+0 T () S 8 T () S 16 T ({ if \(antlr::nullAST == valannars\) ##->addChild\(#\([SEGDARUNA,"seg\360aruna"], [TOM) N
+0 T (AGILDI,"[]"]\)\); }) N
+0 T () S 8 T (| #\(L_SKILA segd\)) N
+0 T () S 8 T (| L_UT) N
+(160) # () S 8 T (| NAFN) N
+0 T () S 8 T (| STRENGFASTI | STAFFASTI | FJOLDATALA | HEILTALA | FLEYTITALA | TOMAGILDI) N
+0 T () S 8 T (| #\(L_STEF NAFN FJOLDATALA FJOLDATALA\)) N
+0 T (/*) S 8 T (| L_THESSI */) N
+0 T (/*) S 8 T (| L_ARFUR  */) N
+(165) # () S 8 T (;) N
+0 T () N
+0 T (hlutfylkissegd!) N
+0 T () S 8 T (: #\(HORNKLOFI_OPNA s:segd r:segdaruna\)) N
+0 T () S 8 T () S 16 T ({) N
+(170) # () S 8 T () S 16 T () S 24 T (antlr::RefAST sr = #\([SEGDARUNA], #s\);) N
+0 T () S 8 T () S 16 T () S 24 T (int i = 0;) N
+0 T () S 8 T () S 16 T () S 24 T (antlr::RefAST hali = sr->getFirstChild\(\);) N
+0 T () S 8 T () S 16 T () S 24 T (antlr::RefAST c = #r->getFirstChild\(\);) N
+0 T () S 8 T () S 16 T () S 24 T (while \(antlr::nullAST != c\) {) N
+(175) # () S 8 T () S 16 T () S 24 T () S 32 T (hali->setNextSibling\(c\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (i++;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (hali = c;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (c = c->getNextSibling\(\);) N
+0 T () S 8 T () S 16 T () S 24 T (}) N
+(180) # () S 8 T () S 16 T () S 24 T (char fallnafn[64];) N
+0 T () S 8 T () S 16 T () S 24 T (::_snprintf\(fallnafn, 64, "fylkis\346kja%d", i\);) N
+0 T () S 8 T () S 16 T () S 24 T (## = #\([SVIGI_OPNA], [NAFN,fallnafn], #\([NAFNARUNA]\), sr\);) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (| #\(FYLKISGILDISVEITING #\(HORNKLOFI_OPNA ss:segd rr:segdaruna\) gildi:segd\)) N
+(185) # () S 8 T () S 16 T ({) N
+0 T () S 8 T () S 16 T () S 24 T (antlr::RefAST sr = #\([SEGDARUNA], #ss\);) N
+0 T () S 8 T () S 16 T () S 24 T (int i = 0;) N
+0 T () S 8 T () S 16 T () S 24 T (antlr::RefAST hali = sr->getFirstChild\(\);) N
+0 T () S 8 T () S 16 T () S 24 T (antlr::RefAST c = #rr->getFirstChild\(\);) N
+(190) # () S 8 T () S 16 T () S 24 T (while \(antlr::nullAST != c\) {) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (hali->setNextSibling\(c\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (i++;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (hali = c;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (c = c->getNextSibling\(\);) N
+(195) # () S 8 T () S 16 T () S 24 T (}) N
+0 T () S 8 T () S 16 T () S 24 T (hali->setNextSibling\(gildi\);) N
+0 T () S 8 T () S 16 T () S 24 T (char fallnafn[64];) N
+0 T () S 8 T () S 16 T () S 24 T (::_snprintf\(fallnafn, 64, "fylkisetja%d", i\);) N
+0 T () S 8 T () S 16 T () S 24 T (## = #\([SVIGI_OPNA], [NAFN,fallnafn], #\([NAFNARUNA]\), sr\);) N
+(200) # () S 8 T () S 16 T (}) N
+0 T (/*) S 8 T (| #\(PUNKTUR segd NAFN \(#\(SVIGI_OPNA segdaruna segdaruna\)\)? \) */) N
+0 T () S 8 T (;) N
+0 T () N
+0 T (lykkjusegd) N
+(205) # () S 8 T (: #\(L_LYKKJA segdaruna\)) N
+0 T () S 8 T (| #\(L_MEDAN segd segdaruna\)) N
+0 T () S 8 T (| #\(L_FYRIR segdaruna segd segdaruna segdaruna\)) N
+0 T () S 8 T () S 16 T ({) N
+0 T () S 8 T () S 16 T () S 24 T (/* breytum "fyrir" lykkju \355 "me\360an" lykkju */) N
+(210) # () S 8 T () S 16 T () S 24 T (##->setType\(L_MEDAN\);) N
+0 T () S 8 T () S 16 T () S 24 T (antlr::RefAST ini = ##->getFirstChild\(\);) N
+0 T () S 8 T () S 16 T () S 24 T (antlr::RefAST tst = ini->getNextSibling\(\);) N
+0 T () S 8 T () S 16 T () S 24 T (antlr::RefAST incr = tst->getNextSibling\(\);) N
+0 T () S 8 T () S 16 T () S 24 T (antlr::RefAST body = incr->getNextSibling\(\);) N
+(215) # () S 8 T () S 16 T () S 24 T (##->setFirstChild\(tst\);) N
+0 T () S 8 T () S 16 T () S 24 T (antlr::RefAST lastBody = body->getFirstChild\(\);) N
+0 T () S 8 T () S 16 T () S 24 T (if \(antlr::nullAST != lastBody\) {) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (antlr::RefAST incr1 = incr->getFirstChild\(\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (incr->setFirstChild\(lastBody\);) N
+(220) # () S 8 T () S 16 T () S 24 T () S 32 T (while \(antlr::nullAST != lastBody->getNextSibling\(\)\)) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (lastBody = lastBody->getNextSibling\(\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (lastBody->setNextSibling\(incr1\);) N
+0 T () S 8 T () S 16 T () S 24 T (}) N
+0 T () S 8 T () S 16 T () S 24 T (incr->setNextSibling\(antlr::nullAST\);) N
+(225) # () S 8 T () S 16 T () S 24 T () N
+0 T () S 8 T () S 16 T () S 24 T (antlr::RefAST lastInit = ini->getFirstChild\(\);) N
+0 T () S 8 T () S 16 T () S 24 T (if \(antlr::nullAST != lastInit\) {) N
+(FjolnirTransformer.g) (Page 3/4) (Nov 18, 03 18:29) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () S 16 T () S 24 T () S 32 T (while \(antlr::nullAST != lastInit->getNextSibling\(\)\)) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (lastInit = lastInit->getNextSibling\(\);) N
+(230) # () S 8 T () S 16 T () S 24 T () S 32 T (lastInit->setNextSibling\(##\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (## = lastInit;) N
+0 T () S 8 T () S 16 T () S 24 T (}) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (;) N
+(235) # () S 8 T () N
+0 T (lykkjuskilyrdi) N
+0 T () S 8 T (: \(#\(LYKKJUSKILYRDI L_MEDAN\)\)=> #\(LYKKJUSKILYRDI L_MEDAN segd\)) N
+0 T () S 8 T (| \(#\(LYKKJUSKILYRDI L_FYRIR\)\)=> #\(LYKKJUSKILYRDI L_FYRIR segdaruna segd segdaruna\)) N
+0 T () S 8 T (| LYKKJUSKILYRDI) N
+(240) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T (valfasti_range) N
+0 T () S 8 T (: STAFFASTI) N
+0 T () S 8 T (| HEILTALA) N
+(245) # () S 8 T (| #\(PUNKTURPUNKTUR valfasti_range valfasti_range\) /* \376\341ttari skilar aldrei \(a..b\)..c */) N
+0 T () S 8 T (;) S
+(FjolnirTransformer.g) (Page 4/4) (Nov 18, 03 18:29) title
+border
+grestore
+(Printed by ) rhead
+(FjolnirTransformer.g) (7/7) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+
+%%Trailer
+end
+%%EOF

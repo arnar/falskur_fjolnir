@@ -1,0 +1,4922 @@
+%!PS-Adobe-3.0
+%%Title: FjolnirCodegen.g, smali.h, smali.cpp, stef.h, stef.cpp, segd.h, segd.cpp, segdir.h, segd_operators.cpp, segd_assign.cpp
+%%For: 
+%%Creator: a2ps version 4.13
+%%CreationDate: Tue Nov 18 19:49:55 2003
+%%BoundingBox: 24 24 571 818
+%%DocumentData: Clean7Bit
+%%Orientation: Landscape
+%%Pages: 15
+%%PageOrder: Ascend
+%%DocumentMedia: A4 595 842 0 () ()
+%%DocumentNeededResources: font Courier
+%%+ font Courier-Bold
+%%+ font Courier-BoldOblique
+%%+ font Courier-Oblique
+%%+ font Helvetica
+%%+ font Helvetica-Bold
+%%+ font Symbol
+%%+ font Times-Bold
+%%DocumentProcessColors: Black 
+%%DocumentSuppliedResources: procset a2ps-a2ps-hdr
+%%+ procset a2ps-black+white-Prolog
+%%+ encoding ISO-8859-1Encoding
+%%EndComments
+/a2psdict 200 dict def
+a2psdict begin
+%%BeginProlog
+%%Copyright: (c) 1988, 89, 90, 91, 92, 93 Miguel Santana
+%%Copyright: (c) 1995, 96, 97, 98 Akim Demaille, Miguel Santana
+% Check PostScript language level.
+/languagelevel where {
+  pop /gs_languagelevel languagelevel def
+} {
+  /gs_languagelevel 1 def
+} ifelse
+
+% EPSF import as in the Red Book
+/BeginInclude {
+  /b4_Inc_state save def    		% Save state for cleanup
+  /dict_count countdictstack def	% Count objects on dict stack
+  /op_count count 1 sub def		% Count objects on operand stack 
+  userdict begin
+    0 setgray 0 setlinecap
+    1 setlinewidth 0 setlinejoin
+    10 setmiterlimit [ ] 0 setdash newpath
+    gs_languagelevel 1 ne {
+      false setstrokeadjust false setoverprint 
+    } if
+} bind def
+
+/EndInclude {
+  count op_count sub { pos } repeat	% Clean up stacks
+  countdictstack dict_count sub { end } repeat
+  b4_Inc_state restore
+} bind def
+
+/BeginEPSF {
+  BeginInclude
+  /showpage { } def
+} bind def
+
+/EndEPSF {
+  EndInclude
+} bind def
+
+% Page prefeed
+/page_prefeed {         % bool -> -
+  statusdict /prefeed known {
+    statusdict exch /prefeed exch put
+  } {
+    pop
+  } ifelse
+} bind def
+
+/deffont {
+  findfont exch scalefont def
+} bind def
+
+/reencode_font {
+  findfont reencode 2 copy definefont pop def
+} bind def
+
+% Function c-show (str => -)
+% centers text only according to x axis.
+/c-show { 
+  dup stringwidth pop
+  2 div neg 0 rmoveto
+  show
+} bind def
+
+% Function l-show (str => -)
+% prints texts so that it ends at currentpoint
+/l-show {
+  dup stringwidth pop neg 
+  0 
+  rmoveto show
+} bind def
+
+% center-fit show (str w => -)
+% show centered, and scale currentfont so that the width is less than w
+/cfshow {
+  exch dup stringwidth pop
+  % If the title is too big, try to make it smaller
+  3 2 roll 2 copy
+  gt
+  { % if, i.e. too big
+    exch div
+    currentfont exch scalefont setfont
+  } { % ifelse
+    pop pop 
+  }
+  ifelse
+  c-show			% center title
+} bind def
+
+% Return the y size of the current font
+% - => fontsize
+/currentfontsize {
+  currentfont /FontMatrix get 3 get 1000 mul
+} bind def
+
+% reencode the font
+% <encoding-vector> <fontdict> -> <newfontdict>
+/reencode { %def
+  dup length 5 add dict begin
+    { %forall
+      1 index /FID ne 
+      { def }{ pop pop } ifelse
+    } forall
+    /Encoding exch def
+
+    % Use the font's bounding box to determine the ascent, descent,
+    % and overall height; don't forget that these values have to be
+    % transformed using the font's matrix.
+    % We use `load' because sometimes BBox is executable, sometimes not.
+    % Since we need 4 numbers an not an array avoid BBox from being executed
+    /FontBBox load aload pop
+    FontMatrix transform /Ascent exch def pop
+    FontMatrix transform /Descent exch def pop
+    /FontHeight Ascent Descent sub def
+
+    % Define these in case they're not in the FontInfo (also, here
+    % they're easier to get to.
+    /UnderlinePosition 1 def
+    /UnderlineThickness 1 def
+    
+    % Get the underline position and thickness if they're defined.
+    currentdict /FontInfo known {
+      FontInfo
+      
+      dup /UnderlinePosition known {
+	dup /UnderlinePosition get
+	0 exch FontMatrix transform exch pop
+	/UnderlinePosition exch def
+      } if
+      
+      dup /UnderlineThickness known {
+	/UnderlineThickness get
+	0 exch FontMatrix transform exch pop
+	/UnderlineThickness exch def
+      } if
+      
+    } if
+    currentdict 
+  end 
+} bind def
+
+% Function print line number (<string> # -)
+/# {
+  gsave
+    sx cw mul neg 2 div 0 rmoveto
+    f# setfont
+    c-show
+  grestore
+} bind def
+
+% -------- Some routines to enlight plain b/w printings ---------
+
+% Underline
+% width --
+/dounderline {
+  currentpoint
+  gsave
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    0 rlineto
+    stroke
+  grestore
+} bind def
+
+% Underline a string
+% string --
+/dounderlinestring {
+  stringwidth pop
+  dounderline
+} bind def
+
+/UL {
+  /ul exch store
+} bind def
+
+% Draw a box of WIDTH wrt current font
+% width --
+/dobox {
+  currentpoint
+  gsave
+    newpath
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    dup 0 rlineto
+    0 currentfont /FontHeight get currentfontsize mul rlineto
+    neg 0 rlineto
+    closepath
+    stroke
+  grestore
+} bind def
+
+/BX {
+  /bx exch store
+} bind def
+
+% Box a string
+% string --
+/doboxstring {
+  stringwidth pop
+  dobox
+} bind def
+
+%
+% ------------- Color routines ---------------
+%
+/FG /setrgbcolor load def
+
+% Draw the background
+% width --
+/dobackground {
+  currentpoint
+  gsave
+    newpath
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    dup 0 rlineto
+    0 currentfont /FontHeight get currentfontsize mul rlineto
+    neg 0 rlineto
+    closepath
+    bgcolor aload pop setrgbcolor
+    fill
+  grestore
+} bind def
+
+% Draw bg for a string
+% string --
+/dobackgroundstring {
+  stringwidth pop
+  dobackground
+} bind def
+
+
+/BG {
+  dup /bg exch store
+  { mark 4 1 roll ] /bgcolor exch store } if
+} bind def
+
+
+/Show {
+  bg { dup dobackgroundstring } if
+  ul { dup dounderlinestring } if
+  bx { dup doboxstring } if
+  show
+} bind def
+
+% Function T(ab), jumps to the n-th tabulation in the current line
+/T {
+  cw mul x0 add
+  bg { dup currentpoint pop sub dobackground } if
+  ul { dup currentpoint pop sub dounderline } if
+  bx { dup currentpoint pop sub dobox } if
+  y0 moveto
+} bind def
+
+% Function n: move to the next line
+/n {
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+% Function N: show and move to the next line
+/N {
+  Show
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+/S {
+  Show
+} bind def
+
+%%BeginResource: procset a2ps-a2ps-hdr 2.0 2
+%%Copyright: (c) 1988, 89, 90, 91, 92, 93 Miguel Santana
+%%Copyright: (c) 1995, 96, 97, 98 Akim Demaille, Miguel Santana
+% Function title: prints page header.
+% <ct> <rt> <lt> are passed as argument
+/title { 
+  % 1. Draw the background
+  x v get y v get moveto
+  gsave
+    0 th 2 div neg rmoveto 
+    th setlinewidth
+    0.95 setgray
+    pw 0 rlineto stroke
+  grestore
+  % 2. Border it
+  gsave
+    0.7 setlinewidth
+    pw 0 rlineto
+    0 th neg rlineto
+    pw neg 0 rlineto
+    closepath stroke
+  grestore
+  % stk: ct rt lt
+  x v get y v get th sub 1 add moveto
+%%IncludeResource: font Helvetica
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  % 3. The left title
+  gsave
+    dup stringwidth pop fnfs 0.8 mul add exch % leave space took on stack
+    fnfs 0.8 mul hm rmoveto
+    show			% left title
+  grestore
+  exch
+  % stk: ct ltw rt
+  % 4. the right title
+  gsave
+    dup stringwidth pop fnfs 0.8 mul add exch % leave space took on stack
+    dup
+    pw exch stringwidth pop fnfs 0.8 mul add sub
+    hm
+    rmoveto
+    show			% right title
+  grestore
+  % stk: ct ltw rtw
+  % 5. the center title
+  gsave
+    pw 3 1 roll
+    % stk: ct pw ltw rtw
+    3 copy 
+    % Move to the center of the left room
+    sub add 2 div hm rmoveto
+    % What is the available space in here?
+    add sub fnfs 0.8 mul sub fnfs 0.8 mul sub
+    % stk: ct space_left
+%%IncludeResource: font Helvetica-Bold
+  fHelvetica-Bold fnfs scalefont setfont
+    cfshow
+  grestore
+} bind def
+
+% Function border: prints virtual page border
+/border { %def
+  gsave				% print four sides
+    0 setgray
+    x v get y v get moveto
+    0.7 setlinewidth		% of the square
+    pw 0 rlineto
+    0 ph neg rlineto
+    pw neg 0 rlineto
+    closepath stroke
+  grestore
+} bind def
+
+% Function water: prints a water mark in background
+/water { %def
+  gsave
+    scx scy moveto rotate
+%%IncludeResource: font Times-Bold
+  fTimes-Bold 100 scalefont setfont
+    .97 setgray
+    dup stringwidth pop 2 div neg -50 rmoveto
+    show
+  grestore
+} bind def
+
+% Function rhead: prints the right header
+/rhead {  %def
+  lx ly moveto
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  l-show
+} bind def
+
+% Function footer (cf rf lf -> -)
+/footer {
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  dx dy moveto
+  show
+
+  snx sny moveto
+  l-show
+  
+  fnx fny moveto
+  c-show
+} bind def
+%%EndResource
+%%BeginResource: procset a2ps-black+white-Prolog 2.0 1
+
+% Function T(ab), jumps to the n-th tabulation in the current line
+/T {
+  cw mul x0 add y0 moveto
+} bind def
+
+% Function n: move to the next line
+/n { %def
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+% Function N: show and move to the next line
+/N {
+  Show
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+}  bind def
+
+/S {
+  Show
+} bind def
+
+/p {
+  false UL
+  false BX
+  fCourier bfs scalefont setfont
+  Show
+} bind def
+
+/sy {
+  false UL
+  false BX
+  fSymbol bfs scalefont setfont
+  Show
+} bind def
+
+/k {
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/K {
+  false UL
+  false BX
+  fCourier-Bold bfs scalefont setfont
+  Show
+} bind def
+
+/c {
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/C {
+  false UL
+  false BX
+  fCourier-BoldOblique bfs scalefont setfont
+  Show
+} bind def
+
+/l {
+  false UL
+  false BX
+  fCourier-Bold bfs scalefont setfont
+  Show
+} bind def
+
+/L {
+  false UL
+  false BX
+  fCourier-Bold bfs scalefont setfont
+  Show
+} bind def
+
+/str{
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/e{
+  false UL
+  true BX
+  fCourier-BoldOblique bfs scalefont setfont
+  Show
+} bind def
+
+%%EndResource
+%%EndProlog
+%%BeginSetup
+%%IncludeResource: font Courier
+%%IncludeResource: font Courier-Oblique
+%%IncludeResource: font Courier-Bold
+%%IncludeResource: font Symbol
+%%IncludeResource: font Courier-BoldOblique
+%%BeginResource: encoding ISO-8859-1Encoding
+/ISO-8859-1Encoding [
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclam /quotedbl /numbersign /dollar /percent /ampersand /quoteright 
+/parenleft /parenright /asterisk /plus /comma /minus /period /slash 
+/zero /one /two /three /four /five /six /seven 
+/eight /nine /colon /semicolon /less /equal /greater /question 
+/at /A /B /C /D /E /F /G 
+/H /I /J /K /L /M /N /O 
+/P /Q /R /S /T /U /V /W 
+/X /Y /Z /bracketleft /backslash /bracketright /asciicircum /underscore 
+/quoteleft /a /b /c /d /e /f /g 
+/h /i /j /k /l /m /n /o 
+/p /q /r /s /t /u /v /w 
+/x /y /z /braceleft /bar /braceright /asciitilde /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclamdown /cent /sterling /currency /yen /brokenbar /section 
+/dieresis /copyright /ordfeminine /guillemotleft /logicalnot /hyphen /registered /macron 
+/degree /plusminus /twosuperior /threesuperior /acute /mu /paragraph /bullet 
+/cedilla /onesuperior /ordmasculine /guillemotright /onequarter /onehalf /threequarters /questiondown 
+/Agrave /Aacute /Acircumflex /Atilde /Adieresis /Aring /AE /Ccedilla 
+/Egrave /Eacute /Ecircumflex /Edieresis /Igrave /Iacute /Icircumflex /Idieresis 
+/Eth /Ntilde /Ograve /Oacute /Ocircumflex /Otilde /Odieresis /multiply 
+/Oslash /Ugrave /Uacute /Ucircumflex /Udieresis /Yacute /Thorn /germandbls 
+/agrave /aacute /acircumflex /atilde /adieresis /aring /ae /ccedilla 
+/egrave /eacute /ecircumflex /edieresis /igrave /iacute /icircumflex /idieresis 
+/eth /ntilde /ograve /oacute /ocircumflex /otilde /odieresis /divide 
+/oslash /ugrave /uacute /ucircumflex /udieresis /yacute /thorn /ydieresis 
+] def
+%%EndResource
+% Initialize page description variables.
+/sh 595 def
+/sw 842 def
+/llx 24 def
+/urx 818 def
+/ury 571 def
+/lly 24 def
+/#copies 1 def
+/th 15.000000 def
+/fnfs 11 def
+/bfs 6.426693 def
+/cw 3.856016 def
+
+% Dictionary for ISO-8859-1 support
+/iso1dict 7 dict begin
+  /fCourier ISO-8859-1Encoding /Courier reencode_font
+  /fCourier-Bold ISO-8859-1Encoding /Courier-Bold reencode_font
+  /fCourier-BoldOblique ISO-8859-1Encoding /Courier-BoldOblique reencode_font
+  /fCourier-Oblique ISO-8859-1Encoding /Courier-Oblique reencode_font
+  /fHelvetica ISO-8859-1Encoding /Helvetica reencode_font
+  /fHelvetica-Bold ISO-8859-1Encoding /Helvetica-Bold reencode_font
+  /fTimes-Bold ISO-8859-1Encoding /Times-Bold reencode_font
+currentdict end def
+/bgcolor [ 0 0 0 ] def
+/bg false def
+/ul false def
+/bx false def
+% The font for line numbering
+/f# /Helvetica findfont bfs .6 mul scalefont def
+/fSymbol /Symbol findfont def
+/hm fnfs 0.25 mul def
+/pw
+   cw 101.400000 mul
+def
+/ph
+   505.780736 th add
+def
+/pmw urx llx sub pw 2 mul sub 1 div def
+/pmh 0 def
+/v 0 def
+/x [
+  0
+  dup pmw add pw add
+] def
+/y [
+  pmh ph add 0 mul ph add
+  dup
+] def
+/scx sw 2 div def
+/scy sh 2 div def
+/snx urx def
+/sny lly 2 add def
+/dx llx def
+/dy sny def
+/fnx scx def
+/fny dy def
+/lx snx def
+/ly ury fnfs 0.8 mul sub def
+/sx 5 def
+/tab 8 def
+/x0 0 def
+/y0 0 def
+%%EndSetup
+
+%%Page: (1-2) 1
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (header "pre_include_cpp" {) p n
+0 T (#pragma warning\( disable : 4251 4267 4101 4267 \)) N
+0 T (}) N
+0 T () N
+(5) # (header "post_include_hpp" {) N
+0 T (#include "stef.h") N
+0 T (#include "segd.h") N
+0 T (#include "segdir.h") N
+0 T (}) N
+(10) # () N
+0 T (header "post_include_cpp" {) N
+0 T () N
+0 T (#include "myast.h") N
+0 T (//#define loc\(s,t\) if \(NULL != static_cast<ff::ffAST*>\(t.get\(\).ptr\)\) \\) N
+(15) # (//) S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (\(s\)->setLine\(\(static_cast<ff::ffAST*>\(t.get\(\).ptr\)\)->ge) N
+0 T (tLine\(\)\);) N
+0 T (#define loc\(s,t\) \(s\)->setLine\(\(static_cast<ffAST*>\(t.get\(\)\)\)->getLine\(\)\);) N
+0 T () N
+0 T (using namespace std;) N
+0 T (}) N
+(20) # () N
+0 T (options {) N
+0 T () S 8 T (language="Cpp";) N
+0 T () S 8 T (namespace="ff";) N
+0 T () S 8 T (namespaceStd="std";) N
+(25) # () S 8 T (namespaceAntlr="antlr";) N
+0 T () S 8 T (genHashLines=true;) N
+0 T (}) N
+0 T () N
+0 T (class FjolnirCodegen extends TreeParser;) N
+(30) # () N
+0 T (options {) N
+0 T () S 8 T (k = 2;) N
+0 T () S 8 T (importVocab = FjolnirTransformer;) N
+0 T () S 8 T (buildAST = false;) N
+(35) # (}) N
+0 T () N
+0 T ({) N
+0 T () N
+0 T (public:) N
+(40) # () S 8 T (void setOutput\(std::ostream& out\) { this->out = &out; }) N
+0 T () S 8 T () N
+0 T (private:) N
+0 T () S 8 T (std::ostream *out;) N
+0 T (}) N
+(45) # () N
+0 T (forrit) N
+0 T () S 8 T (: \( veiting \)*) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(50) # (veiting) N
+0 T () S 8 T (: #\(EIN_MINNA nafn:EIN_STRENGUR start:EIN_NAFN) N
+0 T () S 8 T () S 16 T ({) N
+0 T () S 8 T () S 16 T () S 24 T (*out << '"' << nafn->getText\(\) << "\\" < " << start->getText\(\) << endl;) N
+0 T () S 8 T () S 16 T (}) N
+(55) # () S 8 T () S 16 T (eining { *out << ";"; } \)) N
+0 T () S 8 T (| #\(EIN_JAFNTOG) S 24 T (\(s:EIN_STRENGUR {*out << '"' << s->getText\(\) << '"';} | n:EIN_NAFN {*ou) N
+0 T (t << n->getText\(\);} \)) N
+0 T () S 8 T () S 16 T ({) N
+0 T () S 8 T () S 16 T () S 24 T (*out << " =" << endl;) N
+0 T () S 8 T () S 16 T (}) N
+(60) # () S 8 T () S 16 T (eining { *out << ";"; } \)) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (eining) N
+0 T () S 8 T (: #\(EIN_ITRUD {*out << "\(!";} eining {*out << "\)";} \)) N
+(65) # () S 8 T (| #\(EIN_ITRUDHLIDS  {*out << "\(";} eining {*out << " & ";} eining {*out << "\)";} \)) N
+0 T () S 8 T (| #\(EIN_HLIDSETNING {*out << "\(";} eining {*out << " + ";} eining {*out << "\)";} \)) N
+0 T () S 8 T (| #\(EIN_SAMSETNING  {*out << "\(";} eining {*out << " : ";} eining {*out << "\)";} \)) N
+0 T () S 8 T (| #\(EIN_INNFLUTT    {*out << "\(";} eining {*out << " * ";} eining {*out << "\)";} \)) N
+0 T () S 8 T (| EIN_STRENGUR  { *out << '"' << #EIN_STRENGUR->getText\(\) << '"'; }) N
+(70) # () S 8 T (| EIN_NAFN  { *out << #EIN_NAFN->getText\(\); }) N
+0 T () S 8 T (| #\(EIN_OPNASLAUFU) N
+0 T () S 8 T () S 16 T ({ *out << endl << "{" << endl; }) N
+0 T () S 8 T () S 16 T (\(vorpun\)*) N
+0 T () S 8 T () S 16 T ({ *out << endl << "}" << endl; }) N
+(75) # () S 8 T (  \)) N
+0 T () S 8 T (;) N
+(FjolnirCodegen.g) (Page 1/4) (Nov 18, 03 19:43) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () N
+0 T (vorpun) N
+0 T ({ string nafn; }) N
+(80) # () S 8 T (: #\(INNSETNING) N
+0 T () S 8 T () S 16 T (\( NAFN {*out << \(nafn = #NAFN->getText\(\)\);}) N
+0 T () S 8 T () S 16 T (| ADGERD {*out << \(nafn = #ADGERD->getText\(\)\);}) N
+0 T () S 8 T () S 16 T (\)  { *out << " -> "; }) N
+0 T () S 8 T () S 16 T (minnissvaedi[nafn] \)) N
+(85) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T (minnissvaedi [string& nafn]) N
+0 T ({ Stef* s=NULL; }) N
+0 T () S 8 T (: NAFN) S 16 T () S 24 T () S 32 T ({ *out << #NAFN->getText\(\) << endl; }) N
+(90) # () S 8 T (| ADGERD) S 24 T () S 32 T ({ *out << #ADGERD->getText\(\) << endl; }) N
+0 T () S 8 T (| L_BREYTA) S 24 T () S 32 T ({ *out << "breyta" << endl; }) N
+0 T () S 8 T (| s=stefskilgreining[nafn] {) N
+0 T () S 8 T () S 16 T (*out << '@' << s->getFjoldiVidfanga\(AFRIT\)) N
+0 T () S 8 T () S 16 T (     << ',' << s->getFjoldiVidfanga\(GILDI\) << "@\(" << endl;) N
+(95) # () S 8 T () S 16 T (s->generate\(*out\);) N
+0 T () S 8 T () S 16 T (*out << '\)' << endl;) N
+0 T () S 8 T (}) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(100) # (stefskilgreining[string& nafn] returns [Stef* ret]) N
+0 T ({ Segd* s; Stef* stef; }) N
+0 T () S 8 T (: #\(L_STEF) S 24 T () S 32 T () S 40 T ({ ret = new Stef\(nafn\); }) N
+0 T () S 8 T () S 16 T (#\(NAFNARUNA \(a:NAFN {) N
+0 T () S 8 T () S 16 T () S 24 T (if \(ret->isLocallyDefined\(a->getText\(\)\)\) {) N
+(105) # () S 8 T () S 16 T () S 24 T () S 32 T (cerr << "Nafni\360 \\"" << a->getText\(\) << "\\" er \376egar skilgreint.) N
+0 T (" << endl;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (exit\(1\);) N
+0 T () S 8 T () S 16 T () S 24 T (}) N
+0 T () S 8 T () S 16 T () S 24 T (ret->addVidfang\(AFRIT,a->getText\(\)\);) N
+0 T () S 8 T () S 16 T (} \)* \)) N
+(110) # () S 8 T () S 16 T (#\(NAFNARUNA \(b:NAFN {) N
+0 T () S 8 T () S 16 T () S 24 T (if \(ret->isLocallyDefined\(b->getText\(\)\)\) {) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (cerr << "Nafni\360 \\"" << b->getText\(\) << "\\" er \376egar skilgreint.) N
+0 T (" << endl;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (exit\(1\);) N
+0 T () S 8 T () S 16 T () S 24 T (}) N
+(115) # () S 8 T () S 16 T () S 24 T (ret->addVidfang\(GILDI,b->getText\(\)\);) N
+0 T () S 8 T () S 16 T (} \)* \)) N
+0 T () S 8 T () S 16 T (#\(SKILGREININGAR) N
+0 T () S 8 T () S 16 T () S 24 T (#\(L_INNFLUTT \(c:NAFN {) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (ret->addInnflutt\(c->getText\(\)\);) N
+(120) # () S 8 T () S 16 T () S 24 T (} \)* \)) N
+0 T () S 8 T () S 16 T () S 24 T (#\(L_STADVAER) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (\( d:NAFN) S 48 T ({) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (if \(ret->isLocallyDefined\(d->getText\(\)\)\) {) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T () S 48 T (cerr << "Nafni\360 \\"" << d->getText\(\) << "\\" er \376) N
+0 T (egar skilgreint." << endl;) N
+(125) # () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T () S 48 T (exit\(1\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (}) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (ret->addStadvaer\(d->getText\(\)\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (}) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (| #\(GILDISVEITING e:NAFN s=segd\) {) N
+(130) # () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (if \(ret->isLocallyDefined\(e->getText\(\)\)\) {) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T () S 48 T (cerr << "Nafni\360 \\"" << e->getText\(\) << "\\" er \376) N
+0 T (egar skilgreint." << endl;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T () S 48 T (exit\(1\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (}) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (ret->addStadvaer\(e->getText\(\), s\); ) N
+(135) # () S 8 T () S 16 T () S 24 T () S 32 T (}) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (\)*) N
+0 T () S 8 T () S 16 T () S 24 T (\)) N
+0 T () S 8 T () S 16 T (\)) N
+0 T () S 8 T () S 16 T (#\(SEGDARUNA \(s=segd {ret->addSegd\(s\);} \)*\)) N
+(140) # () S 8 T () S 16 T (\(#\(SLAUFA_OPNA) N
+0 T () S 8 T () S 16 T () S 24 T (\(#\(INNSETNING f:NAFN stef=stefskilgreining[f->getText\(\)]) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T ({) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (if \(ret->isLocallyDefinedUndirstef\(stef->getNafn\(\),) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T () S 48 T () S 56 T (stef->getFjoldiVidfanga\(AFRIT\), stef->g) N
+0 T (etFjoldiVidfanga\(GILDI\)\)\) {) N
+(145) # () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T () S 48 T (cerr << "Undirstefi\360 \\"" << stef->getNafn\(\) << ) N
+0 T ("\\" er \376egar skilgreint." << endl;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T () S 48 T (exit\(1\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (}) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (ret->addUndirstef\(stef\);) N
+(FjolnirCodegen.g) (Page 2/4) (Nov 18, 03 19:43) title
+border
+grestore
+(Printed by ) rhead
+(FjolnirCodegen.g) (1/15) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (3-4) 2
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () S 16 T () S 24 T () S 32 T (}) N
+(150) # () S 8 T () S 16 T () S 24 T (\)\)*) N
+0 T () S 8 T () S 16 T (\)\)?) N
+0 T () S 8 T (\)) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(155) # () S 8 T (/*) N
+0 T (nafnaruna) N
+0 T () S 8 T (: #\(NAFNARUNA \(NAFN\)*\)) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+(160) # (skilgreiningar) N
+0 T () S 8 T (: #\(SKILGREININGAR #\(L_INNFLUTT \(NAFN\)*\) #\(L_STADVAER frumstillingaruna\)\)) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (frumstillingaruna) N
+(165) # () S 8 T (: \( NAFN | #\(GILDISVEITING NAFN segd\) \)*) N
+0 T () S 8 T (;) N
+0 T () S 8 T () N
+0 T (innriTextaeining) N
+0 T () S 8 T (: #\(SLAUFA_OPNA \(innraStef\)* \)) N
+(170) # () S 8 T (;) N
+0 T () S 8 T () N
+0 T (innraStef) N
+0 T () S 8 T (: #\(INNSETNING NAFN stefskilgreining\)) N
+0 T () S 8 T (;) N
+(175) # () S 8 T () N
+0 T (segdaruna) N
+0 T () S 8 T (: #\(SEGDARUNA \(segd\)*\)) N
+0 T () S 8 T (;) N
+0 T (*/) N
+(180) # () S 8 T () N
+0 T (segd returns [Segd* rets=NULL]) N
+0 T ({ Segd* a=NULL; Segd* b=NULL; }) N
+0 T () S 8 T (: #\(L_OG a=segd b=segd\) { rets = new OgSegd\(a,b\); loc\(rets,#L_OG\); }) N
+0 T () S 8 T (| #\(L_EDA a=segd b=segd\) { rets = new EdaSegd\(a,b\); loc\(rets,#L_EDA\); }) N
+(185) # () S 8 T (| #\(L_EKKI a=segd\) { rets = new EkkiSegd\(a\); loc\(rets, #L_EKKI\); }) N
+0 T () S 8 T (| #\(GILDISVEITING NAFN a=segd\) { rets = new GildisveitingarSegd\(#NAFN->getText\(\), a\); l) N
+0 T (oc\(rets,#GILDISVEITING\); }) N
+0 T () S 8 T (| #\(SVIGI_OPNA NAFN { KallSegd* kall = new KallSegd\(#NAFN->getText\(\)\); }) N
+0 T () S 8 T () S 16 T (#\(NAFNARUNA \(NAFN {kall->addAfritsVidfang\(#NAFN->getText\(\)\);} \)*\)) N
+0 T () S 8 T () S 16 T (#\(SEGDARUNA \(a=segd {kall->addGildisVidfang\(a\);} \)*\)) N
+(190) # () S 8 T (\)) S 16 T ({ rets = kall; loc\(rets, #SVIGI_OPNA\); }) N
+0 T () S 8 T (| #\(L_STOFN) S 24 T () S 32 T ({ StofnSegd* stofn = new StofnSegd\(\); }) N
+0 T () S 8 T () S 16 T (#\(SEGDARUNA \(a=segd {stofn->addSegd\(a\);} \)* \)) N
+0 T () S 8 T (\)) S 16 T ({ rets = \(Segd*\) stofn; loc\(rets,#L_STOFN\); }) N
+0 T () S 8 T (| #\(L_EF a=segd { EfSegd* ef = new EfSegd\(\); ef->addSkilyrdi\(a\); }) N
+(195) # () S 8 T () S 16 T (#\(SEGDARUNA \(a=segd {ef->addSegd\(a\);} \)* \)) N
+0 T () S 8 T () S 16 T (\(#\(L_ANNARSEF a=segd {ef->addSkilyrdi\(a\);}) N
+0 T () S 8 T () S 16 T () S 24 T (#\(SEGDARUNA \(a=segd {ef->addSegd\(a\);} \)* \)) N
+0 T () S 8 T () S 16 T (\)\)*) N
+0 T () S 8 T () S 16 T (#\(SEGDARUNA \(a=segd {ef->addAnnarsSegd\(a\);} \)* \)) N
+(200) # () S 8 T (\)) S 16 T ({ rets = \(Segd*\) ef; loc\(rets,#L_EF\); }) N
+0 T () S 8 T (| rets=lykkjusegd) N
+0 T () S 8 T (| #\(L_VAL { cerr << "Valseg\360 er ekki \372tf\346r\360." << endl; exit\(1\); }) N
+0 T () S 8 T () S 16 T (/* segd \(#\(L_KOSTUR valfasti_range segdaruna\)\)* segdaruna */ \)) N
+0 T () S 8 T (| #\(L_SKILA a=segd\) { rets = new SkilaSegd\(a\); loc\(rets,#L_SKILA\) }) N
+(205) # () S 8 T (| L_UT { rets = new UtSegd\(\); loc\(rets,#L_UT\); }) N
+0 T () S 8 T (| NAFN { rets = new NafnSegd\(#NAFN->getText\(\)\); loc\(rets,#NAFN\); }) N
+0 T () S 8 T (| STRENGFASTI { rets = new StrengSegd\(#STRENGFASTI->getText\(\)\); loc\(rets,#STRENGFASTI\);) N
+0 T ( }) N
+0 T () S 8 T (| STAFFASTI   { rets = new HeiltoluSegd\(#STAFFASTI->getText\(\)[0]\); loc\(rets,#STAFFASTI\)) N
+0 T ( }) N
+0 T () S 8 T (| FJOLDATALA  { rets = new HeiltoluSegd\(#FJOLDATALA->getText\(\)\); loc\(rets,#FJOLDATALA\);) N
+0 T ( }) N
+(210) # () S 8 T (| HEILTALA    { rets = new HeiltoluSegd\(#HEILTALA->getText\(\)\); loc\(rets,#HEILTALA\); }) N
+0 T () S 8 T (| FLEYTITALA  { rets = new FleytitoluSegd\(#FLEYTITALA->getText\(\)\); loc\(rets,#FLEYTITALA) N
+0 T (\); }) N
+0 T () S 8 T (| TOMAGILDI   { rets = new TomaSegd\(\); loc\(rets,#TOMAGILDI\); }) N
+0 T () S 8 T (| #\(L_STEF NAFN FJOLDATALA FJOLDATALA\)) N
+0 T () S 8 T () S 16 T ({ cerr << "Stefgildi eru ekki \372tf\346r\360." << endl; exit\(1\); }) N
+(215) # () S 8 T (;) N
+0 T () N
+0 T (lykkjusegd returns [Segd* rets]) N
+0 T ({ Segd* a; }) N
+0 T () S 8 T (: #\(L_LYKKJA { LykkjuSegd* lykkja = new LykkjuSegd\(\); }) N
+(220) # () S 8 T () S 16 T (#\(SEGDARUNA \(a=segd {lykkja->addSegd\(a\);} \)* \)) N
+0 T () S 8 T (\)) S 16 T ({ rets = \(Segd*\) lykkja; loc\(rets,#L_LYKKJA\); }) N
+(FjolnirCodegen.g) (Page 3/4) (Nov 18, 03 19:43) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T (| #\(L_MEDAN a=segd { MedanSegd* medan = new MedanSegd\(a\); }) N
+0 T () S 8 T () S 16 T (#\(SEGDARUNA \(a=segd {medan->addSegd\(a\);} \)* \)) N
+0 T () S 8 T (\)) S 16 T ({ rets = \(Segd*\) medan; loc\(rets,#L_MEDAN\); }) N
+(225) # () S 8 T (;) N
+0 T () N
+0 T (//valfasti_range) N
+0 T (//) S 8 T (: STAFFASTI) N
+0 T (//) S 8 T (| HEILTALA) N
+(230) # (//) S 8 T (| #\(PUNKTURPUNKTUR valfasti_range valfasti_range\) /* \376\341ttari skilar aldrei \(a..b\)..c */) N
+0 T (//) S 8 T (;) N
+(FjolnirCodegen.g) (Page 4/4) (Nov 18, 03 19:43) title
+border
+grestore
+(Printed by ) rhead
+(FjolnirCodegen.g) (2/15) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1,1) 3
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#ifndef) K
+( __smali_h__) p n
+0 T () S
+(#define) K
+( __smali_h__) p n
+0 T () N
+0 T () S
+(#include) K
+( <string>) p n
+(5) # () N
+0 T (namespace ff {) N
+0 T () N
+0 T () S
+(#define) K
+( emit\(x,y\)   out << ') p
+(\\t) str
+(' << x << ') p
+(\\t) str
+(' << y << ') p
+(\\n) str
+(';) p n
+0 T () N
+(10) # () S
+(#define) K
+( emit_forskeyti\(x\) out << ') p
+(\\t) str
+(' << x << ") p
+(:\\n) str
+(";) p n
+0 T () N
+0 T () S
+(#define) K
+( emit_push\(x\)  out << ") p
+(\\tPUSH\\t) str
+(" << x << ') p
+(\\n) str
+('; \\) p n
+0 T () S 8 T (_umlykjandiStef->stackDelta\(2\);) N
+0 T () N
+(15) # () S
+(#define) K
+( emit_pop\(x\)  out << ") p
+(\\tPOP\\t) str
+(" << x << ') p
+(\\n) str
+('; \\) p n
+0 T () S 8 T (_umlykjandiStef->stackDelta\(-2\);) N
+0 T () N
+0 T () S
+(#define) K
+( emit_popn\(n\)  out << ") p
+(\\tADD\\tSP,) str
+(" << \(n\) << ') p
+(\\n) str
+('; \\) p n
+0 T () S 8 T (_umlykjandiStef->stackDelta\(-\(n\)\);) N
+(20) # () N
+0 T () S
+(#define) K
+( emit_label\(x\) out << x << ") p
+(:\\n) str
+(";) p n
+0 T () N
+0 T () S
+(extern) K
+( ) p
+(unsigned) k
+( ) p
+(int) k
+( __nextLabel;) p n
+0 T () S
+(#define) K
+( newlabel\(\) \(__nextLabel++\)) p n
+(25) # () S
+(#define) K
+( l\(x\) ") p
+(_) str
+(" << \(x\)) p n
+0 T () N
+0 T (std::string quote\() S
+(const) K
+( std::string& s\);) p n
+0 T () N
+0 T (};) N
+(30) # () N
+0 T () S
+(#endif) K
+( ) p
+(/* __smali_h__ */) c
+(smali.h) (Page 1/1) (Nov 09, 03 13:04) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#include) K
+( ") p
+(smali.h) str
+(") p n
+0 T () N
+0 T () S
+(unsigned) k
+( ) p
+(int) k
+( ff::__nextLabel = 1;) p n
+0 T () N
+(5) # (std::string ff::quote\() S
+(const) K
+( std::string& s\) {) p n
+0 T () S 8 T (std::string retval;) N
+0 T () S 8 T (std::string::const_iterator i;) N
+0 T () S 8 T () S
+(for) K
+( \(i = s.begin\(\); i != s.end\(\); i++\) {) p n
+0 T () S 8 T () S 16 T (retval.push_back\(') S
+(\\\\) str
+('\);) p n
+(10) # () S 8 T () S 16 T (retval.push_back\(*i\);) N
+0 T () S 8 T (}) N
+0 T () S 8 T () S
+(return) K
+( retval;) p n
+0 T (}) S
+(smali.cpp) (Page 1/1) (Nov 09, 03 11:29) title
+border
+grestore
+(Printed by ) rhead
+(smali.h, smali.cpp) (3/15) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1-2) 4
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#ifndef) K
+( __stef_h__) p n
+0 T () S
+(#define) K
+( __stef_h__) p n
+0 T () N
+0 T () S
+(#include) K
+( <vector>) p n
+(5) # () S
+(#include) K
+( <map>) p n
+0 T () S
+(#include) K
+( <list>) p n
+0 T () S
+(#include) K
+( <string>) p n
+0 T () S
+(#include) K
+( <iostream>) p n
+0 T () N
+(10) # () S
+(#include) K
+( ") p
+(segd.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(smali.h) str
+(") p n
+0 T () N
+0 T () S
+(#include) K
+( <stack>) p n
+0 T () N
+(15) # (namespace ff {) N
+0 T () N
+0 T (using namespace std;) N
+0 T () N
+0 T () S
+(typedef) K
+( ) p
+(enum) k
+( {) p n
+(20) # () S 8 T (AFRIT = 1,) N
+0 T () S 8 T (GILDI = 2) N
+0 T (} vidfangsTegund;) N
+0 T () N
+0 T () S
+(typedef) K
+( list<pair<string, ) p
+(int) k
+(> > symtab;) p n
+(25) # () S
+(typedef) K
+( list<string> stringlist;) p n
+0 T () N
+0 T () S
+(struct) k
+( symloc {) p n
+0 T () S 8 T () S
+(unsigned) k
+( ) p
+(int) k
+( foldun;) p n
+0 T () S 8 T () S
+(int) k
+( offset;) p n
+(30) # () S 8 T (symloc\(\) : foldun\(0\), offset\(0\) {}) N
+0 T (};) N
+0 T () N
+0 T (class Stef {) N
+0 T () S 8 T (string _nafn;) N
+(35) # () S 8 T (symtab _afritsVidfong;) N
+0 T () S 8 T (symtab _gildisVidfong;) N
+0 T () S 8 T (symtab _localBreytur;) N
+0 T () S 8 T (list<string> _innfluttarBreytur;) N
+0 T () N
+(40) # () S 8 T (list<Segd*> _frumstillingar;) N
+0 T () S 8 T (list<Segd*> _segdaruna;) N
+0 T () N
+0 T () S 8 T () S
+(int) k
+( _stackSize;) p n
+0 T () S 8 T () S
+(int) k
+( _fjoldiAfritsVidfanga;) p n
+(45) # () S 8 T () S
+(int) k
+( _fjoldiGildisVidfanga;) p n
+0 T () S 8 T () S
+(int) k
+( _fjoldiLocalBreyta;) p n
+0 T () S 8 T () S
+(int) k
+( _steflokLabel;) p n
+0 T () N
+0 T () S 8 T (Stef* _parent;) N
+(50) # () S 8 T () S
+(int) k
+( _nestingLevel;) p n
+0 T () S 8 T (map<string, Stef*> _undirStef;) N
+0 T () N
+0 T () S 8 T (stack<) S
+(int) k
+(> _stackMarks; ) p
+(/* fyrir lykkjur */) c n
+0 T () S
+() p 8 T (stack<) S
+(int) k
+(> _utLabels;   ) p
+(/* ditto */) c n
+(55) # () N
+0 T () S
+(public:) p n
+0 T () S 8 T (Stef\(string& nafn\)) N
+0 T () S 8 T () S 16 T (: _nafn\(nafn\), _parent\() S
+(NULL) K
+(\), _nestingLevel\(0\),) p n
+0 T () S 8 T () S 16 T (  _stackSize\(0\), _fjoldiAfritsVidfanga\(0\), _fjoldiGildisVidfanga\(0\),) N
+(60) # () S 8 T () S 16 T (  _fjoldiLocalBreyta\(0\), _steflokLabel\(newlabel\(\)\)) N
+0 T () S 8 T ({}) N
+0 T () S 8 T (virtual ~Stef\(\);) N
+0 T () N
+0 T () S 8 T () S
+(/** Nafn stefsins.) c n
+(65) # () S 8 T ( \\return nafn stefsins.) N
+0 T () S 8 T ( */) N
+0 T () S
+() p 8 T () S
+(const) K
+( string& getNafn\(\) ) p
+(const) K
+( { ) p
+(return) K
+( _nafn; }) p n
+0 T () N
+0 T () S 8 T () S
+(/** Lokamerki stefsins.) c n
+(70) # () S 8 T ( \\return merki sem er skrifa\360 \355 \376ulu strax \341 undan eftirm\341la) N
+0 T () S 8 T ( */) N
+0 T () S
+() p 8 T () S
+(int) k
+( getEndLabel\(\) ) p
+(const) K
+( { ) p
+(return) K
+( _steflokLabel; }) p n
+0 T () N
+0 T () S 8 T () S
+(/** Athugar hvort nafn er skilgreint inni \355 stefinu.) c n
+(75) # () S 8 T ( \\return true \376.\376.a.a. nafn er skilgreint vi\360fangs e\360a breytunafn) N
+0 T () S 8 T ( */) N
+0 T () S
+() p 8 T (bool isDefined\() S
+(const) K
+( string& nafn\);) p n
+0 T () N
+(stef.h) (Page 1/3) (Nov 08, 03 22:15) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () S
+(/** Athugar hvort undirstef er skilgreint innan \355 stefinu) c n
+(80) # () S 8 T ( \\return 0 ef ekki er til undirstef sem er h\346gt a\360 kalla \355 fr\341 n\372verandi) N
+0 T () S 8 T (   sta\360setningu \355 \376ulu, annars f\366ldunarh\346\360 vi\360komandi undirstefs.) N
+0 T () S 8 T ( */) N
+0 T () S
+() p 8 T () S
+(int) k
+( isDefinedUndirstef\() p
+(const) K
+( string& nafn, ) p
+(int) k
+( n, ) p
+(int) k
+( m\);) p n
+0 T () N
+(85) # () S 8 T () S
+(/** Skilar nafni \341 merki undirfalls ) c n
+0 T () S 8 T ( \\pre isDefinedUndirstef\(...\) == true) N
+0 T () S 8 T ( */) N
+0 T () S
+() p 8 T (string getUndirstefLabel\() S
+(const) K
+( string& nafn, ) p
+(int) k
+( n, ) p
+(int) k
+( m\);) p n
+0 T () N
+(90) # () S 8 T () S
+(/** B\346tir vi\360 vi\360fangi af tegund t me\360 nafni nafn.) c n
+0 T () S 8 T ( \\pre isLocallyDefined\(nafn\) == false) N
+0 T () S 8 T ( \\post Stefi\360 \376ekkir sta\360setningu vi\360fangsins \341 stafla) N
+0 T () S 8 T ( */) N
+0 T () S
+() p 8 T () S
+(void) k
+( addVidfang\(vidfangsTegund t, string& nafn\);) p n
+(95) # () N
+0 T () S 8 T () S
+(/** S\346kir fj\366lda \376egar skilgreindra vi\360fanga.) c n
+0 T () S 8 T ( \\return fj\366lda \376egar skilgreindra vi\360fanga af tegund t) N
+0 T () S 8 T ( */) N
+0 T () S
+() p 8 T () S
+(int) k
+( getFjoldiVidfanga\(vidfangsTegund t\);) p n
+(100) # () N
+0 T () S 8 T () S
+(/** B\346tir vi\360 nafni innfluttrar breytu) c n
+0 T () S 8 T ( \\pre isLocallyDefined\(nafn\) == false) N
+0 T () S 8 T ( \\post Stefi\360 \376ekkir nafn sem nafn innfluttrar breytu) N
+0 T () S 8 T ( */) N
+(105) # () S
+() p 8 T () S
+(void) k
+( addInnflutt\(string& nafn\);) p n
+0 T () N
+0 T () S 8 T () S
+(/** B\346tir vi\360 sta\360v\346rri breytu, hugsanlega me\360 frumstillingu) c n
+0 T () S 8 T ( \\pre isLocallyDefined\(nafn\) == false og ef) N
+0 T () S 8 T (      frumstilling er anna\360 hvort null e\360a bendir \341 l\366glega Seg\360) N
+(110) # () S 8 T ( \\post Stefi\360 \376ekkir nafn sem breytunafn \341samt sta\360setningu \341 stafla,) N
+0 T () S 8 T (       og mun skrifa \372t \376ulu til a\360 frumstilla breytuna. \336etta stef) N
+0 T () S 8 T () S 16 T (   mun sj\341 um a\360 losa minni fyrir frumstillinguna) N
+0 T (     */) N
+0 T () S
+() p 8 T () S
+(void) k
+( addStadvaer\(string& nafn, Segd* frumstilling = ) p
+(NULL) K
+(\);) p n
+(115) # () N
+0 T () S 8 T () S
+(/** B\346tir vi\360 undirstefi undir \376etta stef.) c n
+0 T () S 8 T ( \\pre isLocallyDefinedUndirstef\(stef->_nafn\) == false og stef er) N
+0 T () S 8 T (      bendir \341 l\366glegt Stef.) N
+0 T () S 8 T ( \\post \336etta stef \376ekkir nafn sem nafn undirstefs og mun skrifa \372t) N
+(120) # () S 8 T (       \376ulu \376ess. Kalla\360 hefur veri\360 \355 stef->setParent me\360 r\351ttu vi\360f.) N
+0 T () S 8 T () S 16 T (   \336etta Stef mun sj\341 um a\360 losa minni sem stef bendir \355.) N
+0 T () S 8 T ( */) N
+0 T () S
+() p 8 T () S
+(void) k
+( addUndirstef\(Stef* stef\);) p n
+0 T () N
+(125) # () S 8 T () S
+(/** B\346tir vi\360 seg\360 \355 stefi\360.) c n
+0 T () S 8 T ( \\pre s er bendir \355 l\366glega Seg\360) N
+0 T () S 8 T ( \\post stefi\360 mun skrifa \372t \376ulu seg\360arinnar strax \341 eftir \376ulum \376eirra) N
+0 T () S 8 T (       seg\360a sem \376egar hafa veri\360 settar inn me\360 \376essu bo\360i. Kalla\360 hefur) N
+0 T () S 8 T () S 16 T (   veri\360 \355 s->setUmlykjandiStef. \336etta stef mun sj\341 um a\360 losa minni) N
+(130) # () S 8 T () S 16 T (   sem stef bendir \355) N
+0 T () S 8 T ( */) N
+0 T () S
+() p 8 T () S
+(void) k
+( addSegd\(Segd* s\);) p n
+0 T () N
+0 T () S 8 T () S
+(/** Setur bendi \355 stefi\360 \355 n\346stu f\366ldunarh\346\360 fyrir ofan.) c n
+(135) # () S 8 T ( \\pre parent er bendir \355 l\366glegt Stef) N
+0 T () S 8 T ( \\post \336etta stef inniheldur bendi \355 parent og heilt\366lu f\366ldunard\375pt, sem) N
+0 T () S 8 T (       er einum h\346rri en samsvarandi tala \355 parent, \376etta stef um sj\341) N
+0 T () S 8 T () S 16 T (   um a\360 losa minni sem s bendir \355) N
+0 T () S 8 T ( */) N
+(140) # () S
+() p 8 T () S
+(void) k
+( setParent\(Stef* parent\);) p n
+0 T () S 8 T () N
+0 T () S 8 T () S
+(/** S\346kir f\366ldunard\375pt \376essa falls.) c n
+0 T () S 8 T ( \\return f\366ldunard\375pt \376essa falls \(0 ef \376etta er grunnfall\)) N
+0 T () S 8 T ( */) N
+(145) # () S
+() p 8 T () S
+(int) k
+( getNestingLevel\(\);) p n
+0 T () N
+0 T () S 8 T () S
+(/** S\346kir sta\360setningu vi\360fangs e\360a breytu \341 stafla.) c n
+0 T () S 8 T ( \\pre isDefined\(name\) == true) N
+0 T () S 8 T ( \\return symloc struct sem inniheldur t\366lur f\366ldun og offset. F\366ldun) N
+(150) # () S 8 T (   segir til um hva\360 \376arf a\360 fara upp um margar vakningarf\346rslur til a\360 finna) N
+0 T () S 8 T (   vi\360komandi breytu, og offset inniheldur sta\360setningu breytunnar) N
+0 T () S 8 T (   m.v. grunnstak \(BP\) \376eirrar vakningarf\346rslu \355 b\346tum) N
+0 T () S 8 T (   Ef name er nafn \341 innfluttri breytu skilar falli\360 s\351rgildinu {0,0}) N
+0 T () S 8 T ( */) N
+(155) # () S
+() p 8 T (symloc getSymbolLocation\() S
+(const) K
+( string& name\);) p n
+0 T () N
+(stef.h) (Page 2/3) (Nov 08, 03 22:15) title
+border
+grestore
+(Printed by ) rhead
+(stef.h) (4/15) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (3,1) 5
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () S
+(/** Skilar streng sem au\360kennir falli\360.) c n
+0 T () S 8 T ( \\return streng sem au\360kennir falli\360 \372t fr\341 nafni \376ess, fj\366lda vi\360fanga a\360 hvorri) N
+0 T () S 8 T (  ger\360 og n\346sta falli fyrir ofan \355 f\366ldunarh\346\360.) N
+(160) # () S 8 T ( */) N
+0 T () S
+() p 8 T (string getInternalNafn\(\);) N
+0 T () N
+0 T () S 8 T () S
+(/** Gefur fallinu tilkynningu um a\360 \376ula breyti st\346r\360 staflans.) c n
+0 T () S 8 T ( \\post St\346r\360 staflans hefur breyst um d b\346ti.) N
+(165) # () S 8 T ( */) N
+0 T () S
+() p 8 T () S
+(void) k
+( stackDelta\() p
+(int) k
+( d\);) p n
+0 T () N
+0 T () S 8 T () S
+(/** S\346kir st\346r\360 staflans m.v. \376\341 \376ulu sem hefur veri\360 skrifu\360 \372t.) c n
+0 T () S 8 T ( \\return St\346r\360 staflans fr\341 s\355\360ustu sta\360v\346ru breytu \355 b\346tum eftir a\360) N
+(170) # () S 8 T (   s\372 \376ula sem hefur veri\360 skrifu\360 \372t hefur keyrt.) N
+0 T () S 8 T ( */) N
+0 T () S
+() p 8 T () S
+(int) k
+( getStackSize\(\);) p n
+0 T () N
+0 T () S 8 T () S
+(/** Setur n\372verandi staflast\346r\360 efst \341 stafla.) c n
+(175) # () S 8 T (  \\post n\346sta kall \355 lastStackMark mun skila n\372verandi staflast\346r\360) N
+0 T () S 8 T (  */) N
+0 T () S
+() p 8 T () S
+(void) k
+( markStack\(\);) p n
+0 T () N
+0 T () S 8 T () S
+(/** Gleymir s\355\360asta gildi \372r markStack.) c n
+(180) # () S 8 T (  \\pre Kalla\360 hefur veri\360 oftar \355 markStack en unmarkStack) N
+0 T () S 8 T (  \\post n\346sta gildi \372r lastStackMark mun ver\360a st\346r\360 staflans vi\360 \376ars\355\360asta markStack) N
+0 T () S 8 T (  */) N
+0 T () S
+() p 8 T () S
+(void) k
+( unmarkStack\(\);) p n
+0 T () N
+(185) # () S 8 T () S
+(/** S\346kir st\346r\360 staflans vi\360 s\355\360asta markStack) c n
+0 T () S 8 T ( \\return St\346r\360 staflans \376egar kalla\360 var \355 markStack s\355\360ast, e\360a 0 ef) N
+0 T () S 8 T (   kalla\360 hefur veri\360 jafn oft \355 markStack og unmarkStack) N
+0 T () S 8 T ( */) N
+0 T () S
+() p 8 T () S
+(int) k
+( lastStackMark\(\);) p n
+(190) # () N
+0 T () S 8 T () S
+(/* TODO: docs, gera ekki inline? */) c n
+0 T () S
+() p 8 T () S
+(void) k
+( pushUtLabel\() p
+(int) k
+( l\) { _utLabels.push\(l\); }) p n
+0 T () S 8 T () S
+(void) k
+( popUtLabel\(\) { _utLabels.pop\(\); }) p n
+0 T () S 8 T () S
+(int) k
+( getUtLabel\(\) { ) p
+(return) K
+( _utLabels.top\(\); }) p n
+(195) # () N
+0 T () S 8 T () S
+(/** Sm\355\360ar \376ulu fyrir stefi\360.) c n
+0 T () S 8 T ( \\pre Ekki ver\360ur kalla\360 aftur \355 f\366llin addInnflutt, addSegd, addStadvaer,) N
+0 T () S 8 T (   addUndirstef, addVidfang e\360a setParent. out er l\366glegur \372ttaksstraumur.) N
+0 T () S 8 T ( \\post B\372i\360 er a\360 skrifa \355 out \376ulu stefsins.) N
+(200) # () S 8 T ( */) N
+0 T () S
+() p 8 T () S
+(void) k
+( generate\(ostream& out\);) p n
+0 T () N
+0 T () S 8 T () S
+(/** Athugar hvort nafn er locally skilgreint) c n
+0 T () S 8 T (  \\return true \376.\376.a.a. nafn s\351 skilgreint breytu- e\360a vi\360fangsnafn \355 \376essu stefi) N
+(205) # () S 8 T (  */) N
+0 T () S
+() p 8 T (bool isLocallyDefined\() S
+(const) K
+( string& nafn\);) p n
+0 T () N
+0 T () S 8 T () S
+(/** Athugar hvort nafn er nafn \341 beinu undirstefi) c n
+0 T () S 8 T (  \\return true \376.\376.a.a. nafn s\351 nafn \341 beinu undirstefi \376essa falls) N
+(210) # () S 8 T ( */) N
+0 T () S
+() p 8 T (bool isLocallyDefinedUndirstef\() S
+(const) K
+( string& nafn, ) p
+(int) k
+( n, ) p
+(int) k
+( m\);) p n
+0 T () N
+0 T (private:) N
+0 T () S 8 T () S
+(/** Leitar \355 symbolt\366flu.) c n
+(215) # () S 8 T ( \\pre s er l\366gleg symtab, nafn er l\366glegur strengur) N
+0 T () S 8 T ( \\return iterator sem bendir \341 pari\360 <str,i> me\360 str==nafn ef \376a\360 er til \355 s,) N
+0 T () S 8 T (   s.end\(\) annars) N
+0 T () S 8 T ( */) N
+0 T () S
+() p 8 T (symtab::iterator findSymbol\(symtab& s, ) S
+(const) K
+( string& nafn\);) p n
+(220) # () N
+0 T (};) N
+0 T () N
+0 T (}) N
+0 T () N
+(225) # () S
+(#endif) K
+( ) p
+(/* __stef_h__ */) c
+(stef.h) (Page 3/3) (Nov 08, 03 22:15) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#include) K
+( ") p
+(stef.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(smali.h) str
+(") p n
+0 T () N
+0 T () S
+(#include) K
+( <stdio.h>) p n
+(5) # () N
+0 T () S
+(using) K
+( ) p
+(namespace) K
+( ff;) p n
+0 T () N
+0 T (Stef::~Stef\(\) {) N
+0 T () S 8 T (list<Segd*>::iterator s;) N
+(10) # () S 8 T () S
+(for) K
+( \(s = _frumstillingar.begin\(\); s != _frumstillingar.end\(\); s++\) {) p n
+0 T () S 8 T () S 16 T () S
+(delete) K
+( \(*s\);) p n
+0 T () S 8 T (}) N
+0 T () S 8 T () S
+(for) K
+( \(s = _segdaruna.begin\(\); s != _segdaruna.end\(\); s++\) {) p n
+0 T () S 8 T () S 16 T () S
+(delete) K
+( \(*s\);) p n
+(15) # () S 8 T (}) N
+0 T () S 8 T (map<string,Stef*>::iterator u;) N
+0 T () S 8 T () S
+(for) K
+( \(u = _undirStef.begin\(\); u != _undirStef.end\(\); u++\) {) p n
+0 T () S 8 T () S 16 T () S
+(delete) K
+( \(*u\).second;) p n
+0 T () S 8 T (}) N
+(20) # (}) N
+0 T () N
+0 T () S
+(bool) k
+( Stef::isLocallyDefined\() p
+(const) K
+( string& nafn\) {) p n
+0 T () S 8 T () S
+(if) K
+( \(findSymbol\(_localBreytur, nafn\) != _localBreytur.end\(\)\) {) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( ) p
+(true) k
+(;) p n
+(25) # () S 8 T (}) N
+0 T () S 8 T (list<string>::iterator i;) N
+0 T () S 8 T () S
+(for) K
+( \(i = _innfluttarBreytur.begin\(\); i != _innfluttarBreytur.end\(\); i++\) {) p n
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(\(*i\) == nafn\) ) p
+(return) K
+( ) p
+(true) k
+(;) p n
+0 T () S 8 T (}) N
+(30) # () S 8 T () S
+(if) K
+( \(findSymbol\(_gildisVidfong, nafn\) != _gildisVidfong.end\(\)\) {) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( ) p
+(true) k
+(;) p n
+0 T () S 8 T (}) N
+0 T () S 8 T () S
+(if) K
+( \(findSymbol\(_afritsVidfong, nafn\) != _afritsVidfong.end\(\)\) {) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( ) p
+(true) k
+(;) p n
+(35) # () S 8 T (}) N
+0 T () S 8 T () S
+(return) K
+( ) p
+(false) k
+(;) p n
+0 T (}) N
+0 T () N
+0 T () S
+(bool) k
+( Stef::isDefined\() p
+(const) K
+( string& nafn\) {) p n
+(40) # () S 8 T () S
+(if) K
+( \(isLocallyDefined\(nafn\)\)) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( ) p
+(true) k
+(;) p n
+0 T () S 8 T () S
+(if) K
+( \(_parent\)) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( _parent->isDefined\(nafn\);) p n
+0 T () S 8 T () S
+(return) K
+( ) p
+(false) k
+(;) p n
+(45) # (}) N
+0 T () N
+0 T () S
+(bool) k
+( Stef::isLocallyDefinedUndirstef\() p
+(const) K
+( string& nafn, ) p
+(int) k
+( n, ) p
+(int) k
+( m\) {) p n
+0 T () S 8 T () S
+(char) k
+( prefix[32];) p n
+0 T () S 8 T (::_snprintf\(prefix, 32, ") S
+(@%d,%d@) str
+(", n, m\);) p n
+(50) # () S 8 T (string realname = prefix + nafn;) N
+0 T () S 8 T () S
+(if) K
+( \(_undirStef.find\(realname\) != _undirStef.end\(\)\)) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( ) p
+(true) k
+(;) p n
+0 T () S 8 T () S
+(return) K
+( ) p
+(false) k
+(;) p n
+0 T (}) N
+(55) # () N
+0 T () S
+(int) k
+( Stef::isDefinedUndirstef\() p
+(const) K
+( string& nafn, ) p
+(int) k
+( n, ) p
+(int) k
+( m\) {) p n
+0 T () S 8 T () S
+(if) K
+( \(isLocallyDefinedUndirstef\(nafn, n, m\)\)) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( _nestingLevel + 1;) p n
+0 T () S 8 T () S
+(if) K
+( \(_parent\)) p n
+(60) # () S 8 T () S 16 T () S
+(return) K
+( _parent->isDefinedUndirstef\(nafn, n, m\);) p n
+0 T () S 8 T () S
+(return) K
+( 0;) p n
+0 T (}) N
+0 T () N
+0 T (string Stef::getUndirstefLabel\() S
+(const) K
+( string& nafn, ) p
+(int) k
+( n, ) p
+(int) k
+( m\) {) p n
+(65) # () S 8 T () S
+(char) k
+( prefix[32];) p n
+0 T () S 8 T () S
+(if) K
+( \(isLocallyDefinedUndirstef\(nafn, n,m\)\) {) p n
+0 T () S 8 T () S 16 T (::_snprintf\(prefix, 32, ") S
+(@%d,%d@) str
+(", n, m\);) p n
+0 T () S 8 T () S 16 T (string realname = prefix + nafn;) N
+0 T () S 8 T () S 16 T () S
+(return) K
+( \(*\(_undirStef.find\(realname\)\)\).second->getInternalNafn\(\);) p n
+(70) # () S 8 T (}) N
+0 T () S 8 T () S
+(if) K
+( \(_parent\)) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( _parent->getUndirstefLabel\(nafn, n, m\);) p n
+0 T () S 8 T () S
+(/* \346ttum ekki a\360 komast hinga\360 m.v. forskilyr\360i */) c n
+0 T () S
+() p 8 T () S
+(return) K
+( ") p
+(\(vitleysa\)) str
+(";) p n
+(75) # (}) N
+0 T () N
+0 T () S
+(void) k
+( Stef::addVidfang\(vidfangsTegund t, string& nafn\) {) p n
+0 T () S 8 T () S
+(switch) K
+( \(t\) {) p n
+(stef.cpp) (Page 1/4) (Nov 13, 03 17:18) title
+border
+grestore
+(Printed by ) rhead
+(stef.h, stef.cpp) (5/15) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (2-3) 6
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () S
+(case) K
+( AFRIT:) p n
+(80) # () S 8 T () S 16 T (_afritsVidfong.push_back\(symtab::value_type\(nafn, ++_fjoldiAfritsVidfanga\)\);) N
+0 T () S 8 T () S 16 T () S
+(break) K
+(;) p n
+0 T () S 8 T () S
+(case) K
+( GILDI:) p n
+0 T () S 8 T () S 16 T (_gildisVidfong.push_back\(symtab::value_type\(nafn, ++_fjoldiGildisVidfanga\)\);) N
+0 T () S 8 T () S 16 T () S
+(break) K
+(;) p n
+(85) # () S 8 T (}) N
+0 T (}) N
+0 T () N
+0 T () S
+(int) k
+( Stef::getFjoldiVidfanga\(vidfangsTegund t\) {) p n
+0 T () S 8 T () S
+(switch) K
+( \(t\) {) p n
+(90) # () S 8 T () S
+(case) K
+( AFRIT:) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( _afritsVidfong.size\(\);) p n
+0 T () S 8 T () S
+(case) K
+( GILDI:) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( _gildisVidfong.size\(\);) p n
+0 T () S 8 T (}) N
+(95) # () S 8 T () S
+(return) K
+( 0;) p n
+0 T (}) N
+0 T () N
+0 T () S
+(void) k
+( Stef::addInnflutt\(string& nafn\) {) p n
+0 T () S 8 T (_innfluttarBreytur.push_back\(nafn\);) N
+(100) # (}) N
+0 T () N
+0 T () S
+(void) k
+( Stef::addStadvaer\(string& nafn, Segd* frumstilling\) {) p n
+0 T () S 8 T (_localBreytur.push_back\(symtab::value_type\(nafn, ++_fjoldiLocalBreyta\)\);) N
+0 T () S 8 T (_frumstillingar.push_back\(frumstilling\); ) S
+(/* m\341 vera null */) c n
+(105) # () S
+(}) p n
+0 T () N
+0 T () S
+(void) k
+( Stef::addUndirstef\(Stef* stef\) {) p n
+0 T () S 8 T () S
+(char) k
+( prefix[32];) p n
+0 T () S 8 T (::_snprintf\(prefix, 32, ") S
+(@%d,%d@) str
+(", stef->_fjoldiAfritsVidfanga, stef->_fjoldiGildisVidf) p n
+0 T (anga\);) N
+(110) # () S 8 T (string realname = prefix + stef->_nafn;) N
+0 T () S 8 T (_undirStef.insert\(map<string,Stef*>::value_type\(realname, stef\)\);) N
+0 T () S 8 T (stef->setParent\() S
+(this) K
+(\);) p n
+0 T (}) N
+0 T () N
+(115) # () S
+(void) k
+( Stef::addSegd\(Segd* s\) {) p n
+0 T () S 8 T (s->setUmlykjandiStef\() S
+(this) K
+(\);) p n
+0 T () S 8 T (_segdaruna.push_back\(s\);) N
+0 T (}) N
+0 T () N
+(120) # () S
+(void) k
+( Stef::setParent\(Stef* parent\) {) p n
+0 T () S 8 T (_parent = parent;) N
+0 T () S 8 T (_nestingLevel = parent->getNestingLevel\(\)+1;) N
+0 T (}) N
+0 T () N
+(125) # () S
+(int) k
+( Stef::getNestingLevel\(\) {) p n
+0 T () S 8 T () S
+(return) K
+( _nestingLevel;) p n
+0 T (}) N
+0 T () N
+0 T (symloc Stef::getSymbolLocation\() S
+(const) K
+( string& nafn\) {) p n
+(130) # () S 8 T (symloc loc;) N
+0 T () S 8 T (Stef* s = ) S
+(this) K
+(;) p n
+0 T () S 8 T (symtab::iterator i;) N
+0 T () S 8 T (list<string>::iterator l;) N
+0 T () S 8 T () S
+(while) K
+( \(s\) {) p n
+(135) # () S 8 T () S 16 T () S
+(if) K
+( \(\(i = s->findSymbol\(s->_localBreytur, nafn\)\) != s->_localBreytur.end\(\)\) {) p n
+0 T () S 8 T () S 16 T () S 24 T (loc.offset = -\(*i\).second<<2;) N
+0 T () S 8 T () S 16 T () S 24 T () S
+(break) K
+(;) p n
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T () S 16 T () S
+(for) K
+( \(l = _innfluttarBreytur.begin\(\); l != _innfluttarBreytur.end\(\); l++\) {) p n
+(140) # () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(\(*l\) == nafn\) {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (loc.foldun = 0;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (loc.offset = 0;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(goto) K
+( foundVar;  ) p
+(/* break virkar \341 for l\355ka :o\( */) c n
+0 T () S
+() p 8 T () S 16 T () S 24 T (}) N
+(145) # () S 8 T () S 16 T (}) N
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(\(i = s->findSymbol\(s->_gildisVidfong, nafn\)\) != s->_gildisVidfong.end\(\)\) {) p n
+0 T () S 8 T () S 16 T () S 24 T (loc.offset = \(s->_nestingLevel + s->_fjoldiGildisVidfanga + 2 - \(*i\).se) N
+0 T (cond\) << 2;) N
+0 T () S 8 T () S 16 T () S 24 T () S
+(break) K
+(;) p n
+0 T () S 8 T () S 16 T (}) N
+(150) # () S 8 T () S 16 T () S
+(if) K
+( \(\(i = s->findSymbol\(s->_afritsVidfong, nafn\)\) != s->_afritsVidfong.end\(\)\) {) p n
+0 T () S 8 T () S 16 T () S 24 T (loc.offset = \(s->_nestingLevel + s->_fjoldiGildisVidfanga + s->_fjoldiA) N
+0 T (fritsVidfanga + 2) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (- \(*i\).second\) << 2;) N
+0 T () S 8 T () S 16 T () S 24 T () S
+(break) K
+(;) p n
+(stef.cpp) (Page 2/4) (Nov 13, 03 17:18) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () S 16 T (}) N
+(155) # () S 8 T () S 16 T (loc.foldun++;) N
+0 T () S 8 T () S 16 T (s = s->_parent;) N
+0 T () S 8 T (}) N
+0 T (foundVar:) N
+0 T () S 8 T () S
+(return) K
+( loc;) p n
+(160) # (}) N
+0 T () N
+0 T (string Stef::getInternalNafn\(\) {) N
+0 T () S 8 T (string s;) N
+0 T () S 8 T () S
+(if) K
+( \(_parent\) s = _parent->getInternalNafn\(\);) p n
+(165) # () S 8 T () S
+(char) k
+( prefix[32];) p n
+0 T () S 8 T (::_snprintf\(prefix, 32, ") S
+(__%d_%d_) str
+(", _fjoldiAfritsVidfanga, _fjoldiGildisVidfanga\);) p n
+0 T () S 8 T (s += ') S
+(_) str
+(' + \(prefix + _nafn\);) p n
+0 T () S 8 T () S
+(/* TODO: ef s.length > 255 \376\341 villa */) c n
+0 T () S
+() p 8 T () S
+(return) K
+( s;) p n
+(170) # (}) N
+0 T () N
+0 T () S
+(void) k
+( Stef::stackDelta\() p
+(int) k
+( d\) {) p n
+0 T () S 8 T (_stackSize += d;) N
+0 T (}) N
+(175) # () N
+0 T () S
+(int) k
+( Stef::getStackSize\(\) {) p n
+0 T () S 8 T () S
+(return) K
+( _stackSize;) p n
+0 T (}) N
+0 T () N
+(180) # () S
+(void) k
+( Stef::markStack\(\) {) p n
+0 T () S 8 T (_stackMarks.push\(_stackSize\);) N
+0 T (}) N
+0 T () N
+0 T () S
+(void) k
+( Stef::unmarkStack\(\) {) p n
+(185) # () S 8 T (_stackMarks.pop\(\);) N
+0 T (}) N
+0 T () N
+0 T () S
+(int) k
+( Stef::lastStackMark\(\) {) p n
+0 T () S 8 T () S
+(if) K
+( \(_stackMarks.empty\(\)\) {) p n
+(190) # () S 8 T () S 16 T () S
+(return) K
+( -1;) p n
+0 T () S 8 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( _stackMarks.top\(\);) p n
+0 T () S 8 T (}) N
+0 T (}) N
+(195) # () N
+0 T () S
+(void) k
+( Stef::generate\(ostream& out\) {) p n
+0 T () S 8 T () S
+(/* form\341li */) c n
+0 T () S
+() p 8 T (emit\(") S
+(PUSH) str
+(", ") p
+(SI) str
+("\);) p n
+0 T () S 8 T (emit\(") S
+(PUSH) str
+(", ") p
+(BP) str
+("\);) p n
+(200) # () S 8 T (emit\(") S
+(MOV) str
+(", ") p
+(BP,SP) str
+("\);) p n
+0 T () S 8 T (emit\(") S
+(PUSH) str
+(", ") p
+(SI) str
+("\);) p n
+0 T () N
+0 T () S 8 T (list<Segd*>::iterator f;) N
+0 T () S 8 T () S
+(for) K
+( \(f = _frumstillingar.begin\(\); f != _frumstillingar.end\(\); f++\) {) p n
+(205) # () S 8 T () S 16 T () S
+(if) K
+( \() p
+(NULL) K
+( == \(*f\)\) {) p n
+0 T () S 8 T () S 16 T () S 24 T (emit\(") S
+(PUSH) str
+(", ") p
+(ES) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (emit\(") S
+(PUSH) str
+(", ") p
+(ES) str
+("\);) p n
+0 T () S 8 T () S 16 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T (\(*f\)->setUmlykjandiStef\() S
+(this) K
+(\);) p n
+(210) # () S 8 T () S 16 T () S 24 T (\(*f\)->generatePUSH\(out\);) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (}) N
+0 T () S 8 T (_stackSize = 0;) N
+0 T () N
+(215) # () S 8 T (list<Segd*>::iterator s;) N
+0 T () S 8 T () S
+(for) K
+( \(s = _segdaruna.begin\(\); s != _segdaruna.end\(\); s++\) {) p n
+0 T () S 8 T () S 16 T (list<Segd*>::iterator t = s;) N
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(++t != _segdaruna.end\(\)\) {) p n
+0 T () S 8 T () S 16 T () S 24 T (\(*s\)->generateNOVAL\(out\);) N
+(220) # () S 8 T () S 16 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T (\(*s\)->setHali\(\);) N
+0 T () S 8 T () S 16 T () S 24 T (\(*s\)->generateAXDX\(out\);) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (}) N
+(225) # () S 8 T () S
+(/* ASSERT\(_stackSize == 0\) */) c n
+0 T () N
+0 T () S
+() p 8 T () S
+(/* eftirm\341li */) c n
+0 T () S
+() p 8 T (emit_label\(l\(_steflokLabel\)\);) N
+0 T () S 8 T (emit\(") S
+(MOV) str
+(", ") p
+(SP,BP) str
+("\);) p n
+(230) # () S 8 T (emit\(") S
+(POP) str
+(", ") p
+(BP) str
+("\);) p n
+0 T () S 8 T (emit\(") S
+(POP) str
+(", ") p
+(BX) str
+("\);) p n
+(stef.cpp) (Page 3/4) (Nov 13, 03 17:18) title
+border
+grestore
+(Printed by ) rhead
+(stef.cpp) (6/15) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (4,1) 7
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T (emit\(") S
+(RET) str
+(", \(\(_fjoldiGildisVidfanga + _nestingLevel\) << 2\)\);) p n
+0 T () N
+0 T () S 8 T (map<string, Stef*>::iterator u;) N
+(235) # () S 8 T () S
+(for) K
+( \(u = _undirStef.begin\(\); u != _undirStef.end\(\); u++\) {) p n
+0 T () S 8 T () S 16 T (string s = \(*u\).second->getInternalNafn\(\);) N
+0 T () S 8 T () S 16 T (emit_label\(s\);) N
+0 T () S 8 T () S 16 T (\(*u\).second->generate\(out\);) N
+0 T () S 8 T (}) N
+(240) # (}) N
+0 T () N
+0 T (symtab::iterator Stef::findSymbol\(symtab& s, ) S
+(const) K
+( string& nafn\) {) p n
+0 T () S 8 T () S
+(for) K
+( \(symtab::iterator i = s.begin\(\); i != s.end\(\); i++\)) p n
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(\(*i\).first == nafn\) ) p
+(return) K
+( i;) p n
+(245) # () S 8 T () S
+(return) K
+( s.end\(\);) p n
+0 T (}) N
+(stef.cpp) (Page 4/4) (Nov 13, 03 17:18) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#ifndef) K
+( __segd_h__) p n
+0 T () S
+(#define) K
+( __segd_h__) p n
+0 T () N
+0 T () S
+(#include) K
+( <iostream>) p n
+(5) # () N
+0 T (namespace ff {) N
+0 T () N
+0 T (using namespace std;) N
+0 T () N
+(10) # (class Stef;) N
+0 T () N
+0 T (class Segd {) N
+0 T (protected:) N
+0 T () S 8 T (bool _hali;) N
+(15) # () S 8 T (Stef* _umlykjandiStef;) N
+0 T () S 8 T () S
+(int) k
+( _line;) p n
+0 T () N
+0 T (public:) N
+0 T () S 8 T (Segd\(\) : _hali\(false\), _umlykjandiStef\() S
+(NULL) K
+(\), _line\(0\) {}) p n
+(20) # () S 8 T (virtual ~Segd\(\) {}) N
+0 T () N
+0 T () S 8 T () S
+(void) k
+( setHali\(\) { _hali = true; }) p n
+0 T () S 8 T () S
+(void) k
+( clearHali\(\) { _hali = false; }) p n
+0 T () S 8 T (bool isHali\(\) ) S
+(const) K
+( { ) p
+(return) K
+( _hali; }) p n
+(25) # () S 8 T () S
+(void) k
+( setLine\() p
+(int) k
+( line\) { _line = line; }) p n
+0 T () N
+0 T () S 8 T (virtual ) S
+(void) k
+( setUmlykjandiStef\(Stef* stef\) { _umlykjandiStef = stef; }) p n
+0 T () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+( = 0;) p n
+(30) # () S 8 T (virtual ) S
+(void) k
+( generatePUSH\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generateJUMP\(ostream& out, ) p
+(int) k
+( iftrue, ) p
+(int) k
+( iffalse\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generateNOVAL\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () N
+0 T () S 8 T () S
+(void) k
+( reportError\() p
+(const) K
+( ) p
+(char) k
+(* villa, ...\) ) p
+(const) K
+(;) p n
+(35) # (};) N
+0 T () N
+0 T (}) N
+0 T () N
+0 T () S
+(#endif) K
+( ) p
+(/* __segd_h__ */) c
+(segd.h) (Page 1/1) (Nov 16, 03 17:53) title
+border
+grestore
+(Printed by ) rhead
+(stef.cpp, segd.h) (7/15) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1,1) 8
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#include) K
+( ") p
+(segd.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(smali.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(stef.h) str
+(") p n
+0 T () N
+(5) # () S
+(#include) K
+( <iostream>) p n
+0 T () S
+(#include) K
+( <stdarg.h>) p n
+0 T () N
+0 T () S
+(using) K
+( ) p
+(namespace) K
+( ff;) p n
+0 T () N
+(10) # () S
+(void) k
+( Segd::generatePUSH\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (generateAXDX\(out\);) N
+0 T () S 8 T (emit_push\(") S
+(AX) str
+("\);) p n
+0 T () S 8 T (emit_push\(") S
+(DX) str
+("\);) p n
+0 T (}) N
+(15) # () N
+0 T () S
+(void) k
+( Segd::generateNOVAL\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (generateAXDX\(out\);) N
+0 T (}) N
+0 T () N
+(20) # () S
+(void) k
+( Segd::generateJUMP\(ostream& out, ) p
+(int) k
+( iftrue, ) p
+(int) k
+( iffalse\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (generateAXDX\(out\);) N
+0 T () S 8 T () S
+(if) K
+( \(iftrue\) {) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(TEST) str
+(", ") p
+(DL,1) str
+("\);) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(JZ) str
+(", l\(iftrue\)\);) p n
+(25) # () S 8 T (}) N
+0 T () S 8 T () S
+(if) K
+( \(iffalse\) {) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(TEST) str
+(", ") p
+(DL,1) str
+("\);) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(JNZ) str
+(", l\(iffalse\)\);) p n
+0 T () S 8 T (}) N
+(30) # (}) N
+0 T () N
+0 T () S
+(extern) K
+( std::ostream* __ff_errors;) p n
+0 T () S
+(void) k
+( Segd::reportError\() p
+(const) K
+( ) p
+(char) k
+(* villa, ...\) ) p
+(const) K
+( {) p n
+0 T () S 8 T () S
+(char) k
+( buffer1[32], buffer2[128];) p n
+(35) # () S 8 T (va_list vl;) N
+0 T () S 8 T (va_start\(vl,villa\);) N
+0 T () N
+0 T () S 8 T () S
+(if) K
+( \(0 == _line\)) p n
+0 T () S 8 T () S 16 T (::strncpy\(buffer1, ") S
+(Villa: ) str
+(", 32\);) p n
+(40) # () S 8 T () S
+(else) K n
+0 T () S
+() p 8 T () S 16 T (::_snprintf\(buffer1, 32, ") S
+(Villa \355 l\355nu %d: ) str
+(", _line\);) p n
+0 T () S 8 T (::_vsnprintf\(buffer2, 128, villa, vl\);) N
+0 T () N
+0 T () S 8 T (*__ff_errors << endl << buffer1 << buffer2 << endl;) N
+(45) # () N
+0 T () S 8 T (exit\(1\);) N
+0 T (}) S
+(segd.cpp) (Page 1/1) (Nov 16, 03 22:29) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#ifndef) K
+( __segdir_h__) p n
+0 T () S
+(#define) K
+( __segdir_h__) p n
+0 T () N
+0 T () S
+(#include) K
+( ") p
+(segd.h) str
+(") p n
+(5) # () S
+(#include) K
+( ") p
+(smali.h) str
+(") p n
+0 T () N
+0 T () S
+(#include) K
+( <vector>) p n
+0 T () S
+(#include) K
+( <list>) p n
+0 T () N
+(10) # (namespace ff {) N
+0 T () N
+0 T () S
+(/**** segd_operators.cpp ****/) c n
+0 T () S
+(class BinOpSegd : public Segd {) p n
+0 T (protected:) N
+(15) # () S 8 T (Segd* _right;) N
+0 T () S 8 T (Segd* _left;) N
+0 T (public:) N
+0 T () S 8 T (BinOpSegd\(Segd* l, Segd* r\) : _left\(l\), _right\(r\) {}) N
+0 T () S 8 T () S
+(void) k
+( setUmlykjandiStef\(Stef* stef\);) p n
+(20) # () S 8 T (virtual ~BinOpSegd\(\);) N
+0 T (};) N
+0 T () N
+0 T (class OgSegd : public BinOpSegd {) N
+0 T (public:) N
+(25) # () S 8 T (OgSegd\(Segd* l, Segd* r\) : BinOpSegd\(l,r\) {}) N
+0 T () S 8 T (virtual ~OgSegd\(\) {}) N
+0 T () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generateJUMP\(ostream& out, ) p
+(int) k
+(, ) p
+(int) k
+(\) ) p
+(const) K
+(;) p n
+(30) # (};) N
+0 T () N
+0 T (class EdaSegd : public BinOpSegd {) N
+0 T (public:) N
+0 T () S 8 T (EdaSegd\(Segd* l, Segd* r\) : BinOpSegd\(l,r\) {}) N
+(35) # () S 8 T (virtual ~EdaSegd\(\) {}) N
+0 T () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generateJUMP\(ostream& out, ) p
+(int) k
+(, ) p
+(int) k
+(\) ) p
+(const) K
+(;) p n
+0 T (};) N
+(40) # () N
+0 T (class EkkiSegd : public Segd {) N
+0 T () S 8 T (Segd* _segd;) N
+0 T (public:) N
+0 T () S 8 T (EkkiSegd\(Segd* s\) : _segd\(s\) {}) N
+(45) # () S 8 T (virtual ~EkkiSegd\(\);) N
+0 T () S 8 T () S
+(void) k
+( setUmlykjandiStef\(Stef* stef\);) p n
+0 T () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generateJUMP\(ostream& out, ) p
+(int) k
+(, ) p
+(int) k
+(\) ) p
+(const) K
+(;) p n
+(50) # (};) N
+0 T () N
+0 T () S
+(/**** segd_assign.cpp ****/) c n
+0 T () S
+(class GildisveitingarSegd : public Segd {) p n
+0 T () S 8 T (string _nafn;) N
+(55) # () S 8 T (Segd* _s;) N
+0 T (public:) N
+0 T () S 8 T (GildisveitingarSegd\(string nafn, Segd* s\) : _nafn\(nafn\), _s\(s\) {}) N
+0 T () S 8 T (virtual ~GildisveitingarSegd\(\) { delete _s; }) N
+0 T () S 8 T () S
+(void) k
+( setUmlykjandiStef\(Stef* stef\);) p n
+(60) # () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T (};) N
+0 T () N
+0 T (class SkilaSegd : public Segd {) N
+(65) # () S 8 T (Segd* _s;) N
+0 T (public:) N
+0 T () S 8 T (SkilaSegd\(Segd* s\) : _s\(s\) {}) N
+0 T () S 8 T (virtual ~SkilaSegd\(\) { delete _s; }) N
+0 T () S 8 T () S
+(void) k
+( setUmlykjandiStef\(Stef* stef\);) p n
+(70) # () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generatePUSH\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generateJUMP\(ostream& out, ) p
+(int) k
+(, ) p
+(int) k
+(\) ) p
+(const) K
+(;) p n
+0 T (};) N
+(75) # () N
+0 T () S
+(/**** segd_kall.cpp ****/) c n
+0 T () S
+(class KallSegd : public Segd {) p n
+0 T () S 8 T (string _nafn;) N
+(segdir.h) (Page 1/3) (Nov 18, 03 18:01) title
+border
+grestore
+(Printed by ) rhead
+(segd.cpp, segdir.h) (8/15) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (2-3) 9
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T (list<string> _afritsVidfong;) N
+(80) # () S 8 T (list<Segd*> _gildisVidfong;) N
+0 T (public:) N
+0 T () S 8 T (KallSegd\() S
+(const) K
+( string& nafn\) : _nafn\(nafn\) {}) p n
+0 T () S 8 T (virtual ~KallSegd\(\);) N
+0 T () S 8 T () S
+(void) k
+( setUmlykjandiStef\(Stef* stef\);) p n
+(85) # () N
+0 T () S 8 T () S
+(void) k
+( addAfritsVidfang\(string& nafn\);) p n
+0 T () S 8 T () S
+(void) k
+( addGildisVidfang\(Segd* s\);) p n
+0 T () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+(90) # (};) N
+0 T () N
+0 T () S
+(/**** segd_cond.cpp ****/) c n
+0 T () S
+(class EfSegd : public Segd {) p n
+0 T () S 8 T (vector<Segd*> _skilyrdi;) N
+(95) # () S 8 T (vector<list<Segd*> > _segdarunur;) N
+0 T () S 8 T (list<Segd*> _annarsruna;) N
+0 T (public:) N
+0 T () S 8 T (EfSegd\(\) {};) N
+0 T () S 8 T (virtual ~EfSegd\(\);) N
+(100) # () S 8 T () S
+(void) k
+( setUmlykjandiStef\(Stef* stef\);) p n
+0 T () N
+0 T () S 8 T () S
+(void) k
+( addSkilyrdi\(Segd* s\);) p n
+0 T () S 8 T () S
+(void) k
+( addSegd\(Segd* s\);) p n
+0 T () S 8 T () S
+(void) k
+( addAnnarsSegd\(Segd* s\);) p n
+(105) # () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T (};) N
+0 T () S
+(/* class ValSegd : public Segd {}; */) c n
+0 T () N
+(110) # (/**** segd_loop.cpp ****/) N
+0 T () S
+(class LykkjuSegd : public Segd {) p n
+0 T () S 8 T (list<Segd*> _segdaruna;) N
+0 T () S 8 T () S
+(int) k
+( _exitLabel;) p n
+0 T (public:) N
+(115) # () S 8 T (LykkjuSegd\(\) { _exitLabel = newlabel\(\); }) N
+0 T () S 8 T (virtual ~LykkjuSegd\(\);) N
+0 T () S 8 T () S
+(void) k
+( setUmlykjandiStef\(Stef* stef\);) p n
+0 T () N
+0 T () S 8 T () S
+(void) k
+( addSegd\(Segd* s\);) p n
+(120) # () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T (};) N
+0 T () N
+0 T (class MedanSegd : public Segd {) N
+(125) # () S 8 T (list<Segd*> _segdaruna;) N
+0 T () S 8 T (Segd* _cond;) N
+0 T () S 8 T () S
+(int) k
+( _exitLabel;) p n
+0 T (public:) N
+0 T () S 8 T (MedanSegd\(Segd* cond\) : _cond\(cond\)) N
+(130) # () S 8 T () S 16 T ({ _exitLabel = newlabel\(\); }) N
+0 T () S 8 T (virtual ~MedanSegd\(\);) N
+0 T () S 8 T () S
+(void) k
+( setUmlykjandiStef\(Stef* stef\);) p n
+0 T () N
+0 T () S 8 T () S
+(void) k
+( addSegd\(Segd* s\);) p n
+(135) # () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T (};) N
+0 T () N
+0 T (class UtSegd : public Segd {) N
+(140) # (public:) N
+0 T () S 8 T (UtSegd\(\) {}) N
+0 T () S 8 T (virtual ~UtSegd\(\) {}) N
+0 T () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+(145) # () S 8 T (virtual ) S
+(void) k
+( generateJUMP\(ostream& out, ) p
+(int) k
+(, ) p
+(int) k
+(\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generatePUSH\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T (};) N
+0 T () N
+0 T () S
+(/**** segd_stofn.cpp ****/) c n
+(150) # () S
+(class StofnSegd : public Segd {) p n
+0 T () S 8 T (list<Segd*> _segdaruna;) N
+0 T (public:) N
+0 T () S 8 T (StofnSegd\(\) {}) N
+0 T () S 8 T (virtual ~StofnSegd\(\) {}) N
+(155) # () S 8 T () S
+(void) k
+( setUmlykjandiStef\(Stef* stef\);) p n
+0 T () N
+(segdir.h) (Page 2/3) (Nov 18, 03 18:01) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () S
+(void) k
+( addSegd\(Segd* s\);) p n
+0 T () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+(160) # () S 8 T (virtual ) S
+(void) k
+( generateJUMP\(ostream& out, ) p
+(int) k
+(, ) p
+(int) k
+(\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generatePUSH\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generateNOVAL\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T (};) N
+0 T () N
+(165) # () S
+(/**** segd_value.cpp ****/) c n
+0 T () S
+(class NafnSegd : public Segd {) p n
+0 T () S 8 T (string _nafn;) N
+0 T (public:) N
+0 T () S 8 T (NafnSegd\() S
+(const) K
+( string& nafn\) : _nafn\(nafn\) {}) p n
+(170) # () S 8 T (virtual ~NafnSegd\(\) {}) N
+0 T () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generatePUSH\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generateNOVAL\(ostream& out\) ) p
+(const) K
+( {};) p n
+(175) # (};) N
+0 T () N
+0 T (class StrengSegd : public Segd {) N
+0 T () S 8 T (string _s;) N
+0 T (public:) N
+(180) # () S 8 T (StrengSegd\() S
+(const) K
+( string& s\) : _s\(s\) {}) p n
+0 T () S 8 T (virtual ~StrengSegd\(\) {}) N
+0 T () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generateNOVAL\(ostream& out\) ) p
+(const) K
+( {};) p n
+(185) # () S 8 T (virtual ) S
+(void) k
+( generateJUMP\(ostream& out, ) p
+(int) k
+(, ) p
+(int) k
+(\) ) p
+(const) K
+(;) p n
+0 T (};) N
+0 T () N
+0 T (class HeiltoluSegd : public Segd {) N
+0 T () S 8 T () S
+(int) k
+( _tala;) p n
+(190) # (public:) N
+0 T () S 8 T (HeiltoluSegd\() S
+(int) k
+( tala\);) p n
+0 T () S 8 T (HeiltoluSegd\(string& les\);) N
+0 T () S 8 T (virtual ~HeiltoluSegd\(\) {}) N
+0 T () N
+(195) # () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generatePUSH\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generateNOVAL\(ostream& out\) ) p
+(const) K
+( {};) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generateJUMP\(ostream& out, ) p
+(int) k
+(, ) p
+(int) k
+(\) ) p
+(const) K
+(;) p n
+0 T (};) N
+(200) # () N
+0 T (class FleytitoluSegd : public Segd {) N
+0 T () S 8 T () S
+(unsigned) k
+( ) p
+(short) k
+( _ax, _dx;) p n
+0 T (public:) N
+0 T () S 8 T (FleytitoluSegd\(string& les\);) N
+(205) # () S 8 T (virtual ~FleytitoluSegd\(\) {}) N
+0 T () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generatePUSH\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generateNOVAL\(ostream& out\) ) p
+(const) K
+( {};) p n
+(210) # () S 8 T (virtual ) S
+(void) k
+( generateJUMP\(ostream& out, ) p
+(int) k
+(, ) p
+(int) k
+(\) ) p
+(const) K
+(;) p n
+0 T (};) N
+0 T () N
+0 T (class TomaSegd : public Segd {) N
+0 T (public:) N
+(215) # () S 8 T (TomaSegd\(\) {}) N
+0 T () S 8 T (virtual ~TomaSegd\(\) {}) N
+0 T () N
+0 T () S 8 T (virtual ) S
+(void) k
+( generateAXDX\(ostream& out\) ) p
+(const) K
+(;) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generatePUSH\(ostream& out\) ) p
+(const) K
+(;) p n
+(220) # () S 8 T (virtual ) S
+(void) k
+( generateNOVAL\(ostream& out\) ) p
+(const) K
+( {}) p n
+0 T () S 8 T (virtual ) S
+(void) k
+( generateJUMP\(ostream& out, ) p
+(int) k
+(, ) p
+(int) k
+(\) ) p
+(const) K
+(;) p n
+0 T (};) N
+0 T () N
+0 T () S
+(/* class StefgildisSegd : public Segd {}; */) c n
+(225) # () N
+0 T (/**** segd_oo.cpp ****/) N
+0 T (/*) N
+0 T (class ThessiSegd : public Segd {};) N
+0 T (class ArfurSegd : public Segd {};) N
+(230) # (*/) N
+0 T () N
+0 T () S
+(}) p n
+0 T () N
+0 T () S
+(#endif) K
+( ) p
+(/* __segdir_h__ */) c
+(segdir.h) (Page 3/3) (Nov 18, 03 18:01) title
+border
+grestore
+(Printed by ) rhead
+(segdir.h) (9/15) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1,1) 10
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#include) K
+( ") p
+(segdir.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(smali.h) str
+(") p n
+0 T () N
+0 T () S
+(using) K
+( ) p
+(namespace) K
+( ff;) p n
+(5) # () N
+0 T (BinOpSegd::~BinOpSegd\(\) {) N
+0 T () S 8 T () S
+(delete) K
+( _left;) p n
+0 T () S 8 T () S
+(delete) K
+( _right;) p n
+0 T (}) N
+(10) # () N
+0 T () S
+(void) k
+( BinOpSegd::setUmlykjandiStef\(Stef* stef\) {) p n
+0 T () S 8 T (Segd::setUmlykjandiStef\(stef\);) N
+0 T () S 8 T (_right->setUmlykjandiStef\(stef\);) N
+0 T () S 8 T (_left->setUmlykjandiStef\(stef\);) N
+(15) # (}) N
+0 T () N
+0 T () S
+(void) k
+( OgSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T () S
+(int) k
+( ut = newlabel\(\);) p n
+0 T () S 8 T (_left->generateAXDX\(out\);) N
+(20) # () S 8 T (emit\(") S
+(TEST) str
+(", ") p
+(DL,1) str
+("\);) p n
+0 T () S 8 T (emit\(") S
+(JNZ) str
+(", l\(ut\)\);) p n
+0 T () S 8 T (_right->generateAXDX\(out\);) N
+0 T () S 8 T (emit_label\(l\(ut\)\);) N
+0 T (}) N
+(25) # () N
+0 T () S
+(void) k
+( OgSegd::generateJUMP\(ostream& out, ) p
+(int) k
+( iftrue, ) p
+(int) k
+( iffalse\) ) p
+(const) K
+( {) p n
+0 T () S 8 T () S
+(if) K
+( \(iffalse\) {) p n
+0 T () S 8 T () S 16 T (_left->generateJUMP\(out,0,iffalse\);) N
+0 T () S 8 T () S 16 T (_right->generateJUMP\(out,iftrue,iffalse\);) N
+(30) # () S 8 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S
+(int) k
+( ut = newlabel\(\);) p n
+0 T () S 8 T () S 16 T (_left->generateJUMP\(out,0,ut\);) N
+0 T () S 8 T () S 16 T (_right->generateJUMP\(out,iftrue,0\);) N
+0 T () S 8 T () S 16 T (emit_label\(l\(ut\)\);) N
+(35) # () S 8 T (}) N
+0 T (}) N
+0 T () N
+0 T () S
+(void) k
+( EdaSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T () S
+(int) k
+( ut = newlabel\(\);) p n
+(40) # () S 8 T (_left->generateAXDX\(out\);) N
+0 T () S 8 T (emit\(") S
+(TEST) str
+(", ") p
+(DL,1) str
+("\);) p n
+0 T () S 8 T (emit\(") S
+(JZ) str
+(", l\(ut\)\);) p n
+0 T () S 8 T (_right->generateAXDX\(out\);) N
+0 T () S 8 T (emit_label\(l\(ut\)\);) N
+(45) # (}) N
+0 T () N
+0 T () S
+(void) k
+( EdaSegd::generateJUMP\(ostream& out, ) p
+(int) k
+( iftrue, ) p
+(int) k
+( iffalse\) ) p
+(const) K
+( {) p n
+0 T () S 8 T () S
+(if) K
+( \(iftrue\) {) p n
+0 T () S 8 T () S 16 T (_left->generateJUMP\(out,iftrue,0\);) N
+(50) # () S 8 T () S 16 T (_right->generateJUMP\(out,iftrue,iffalse\);) N
+0 T () S 8 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S
+(int) k
+( ut = newlabel\(\);) p n
+0 T () S 8 T () S 16 T (_left->generateJUMP\(out,ut,0\);) N
+0 T () S 8 T () S 16 T (_right->generateJUMP\(out,0,iffalse\);) N
+(55) # () S 8 T () S 16 T (emit_label\(l\(ut\)\);) N
+0 T () S 8 T (}) N
+0 T (}) N
+0 T () N
+0 T (EkkiSegd::~EkkiSegd\(\) {) N
+(60) # () S 8 T () S
+(delete) K
+( _segd;) p n
+0 T (}) N
+0 T () N
+0 T () S
+(void) k
+( EkkiSegd::setUmlykjandiStef\(Stef* stef\) {) p n
+0 T () S 8 T (Segd::setUmlykjandiStef\(stef\);) N
+(65) # () S 8 T (_segd->setUmlykjandiStef\(stef\);) N
+0 T (}) N
+0 T () N
+0 T () S
+(void) k
+( EkkiSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (_segd->generateAXDX\(out\);) N
+(70) # () S 8 T (emit\(") S
+(MOV) str
+(", ") p
+(AX,ES) str
+("\);) p n
+0 T () S 8 T (emit\(") S
+(AND) str
+(", ") p
+(DX,1) str
+("\);) p n
+0 T () S 8 T (emit\(") S
+(INC) str
+(", ") p
+(DX) str
+("\);) p n
+0 T (}) N
+0 T () N
+(75) # () S
+(void) k
+( EkkiSegd::generateJUMP\(ostream& out, ) p
+(int) k
+( iftrue, ) p
+(int) k
+( iffalse\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (_segd->generateJUMP\(out, iffalse, iftrue\);) N
+0 T (}) S
+(segd_operators.cpp) (Page 1/1) (Nov 08, 03 19:01) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#include) K
+( ") p
+(segdir.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(smali.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(stef.h) str
+(") p n
+0 T () N
+(5) # () S
+(using) K
+( ) p
+(namespace) K
+( ff;) p n
+0 T () N
+0 T () S
+(void) k
+( GildisveitingarSegd::setUmlykjandiStef\(Stef* stef\) {) p n
+0 T () S 8 T (Segd::setUmlykjandiStef\(stef\);) N
+0 T () S 8 T (_s->setUmlykjandiStef\(stef\);) N
+(10) # (}) N
+0 T () N
+0 T () S
+(void) k
+( GildisveitingarSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T () S
+(if) K
+( \(!_umlykjandiStef->isDefined\(_nafn\)\) {) p n
+0 T () S 8 T () S 16 T (reportError\(") S
+(Nafni\360 \\"%s\\" er ekki skilgreint.) str
+(", _nafn\);) p n
+(15) # () S 8 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T (_s->generateAXDX\(out\);) N
+0 T () S 8 T () S 16 T (symloc loc = _umlykjandiStef->getSymbolLocation\(_nafn\);) N
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(0 == loc.foldun && 0 == loc.offset\) {) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(/* innflutt breyta */) c n
+(20) # () S
+() p 8 T () S 16 T () S 24 T (emit\(") S
+(MOV) str
+(",") p
+(BX,%) str
+(" << quote\(_nafn\)\);) p n
+0 T () S 8 T () S 16 T () S 24 T (emit_forskeyti\(") S
+(DS) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (emit\(") S
+(MOV) str
+(",") p
+([BX],DX) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (emit_forskeyti\(") S
+(DS) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (emit\(") S
+(MOV) str
+(",") p
+([BX+2],AX) str
+("\);) p n
+(25) # () S 8 T () S 16 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(loc.foldun > 0\) {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(/* assert\(nest <= _umlykjandiStef->getNestingLevel\(\) */) c n
+0 T () S
+() p 8 T () S 16 T () S 24 T () S 32 T () S
+(unsigned) k
+( ) p
+(int) k
+( nest = loc.foldun;) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (nest++;    ) S
+(/* fram hj\341 vendivistf. */) c n
+(30) # () S
+() p 8 T () S 16 T () S 24 T () S 32 T (nest = nest << 2; ) S
+(/* margf. m. 4 */) c n
+0 T () S
+() p 8 T () S 16 T () S 24 T () S 32 T (emit\(") S
+(MOV) str
+(",") p
+(BX,[BP+) str
+("<<nest<<") p
+(]) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(/* Vi\360 h\366fum fremri addressuna \341 undan \376v\355 \376\341 er l\355klegra a\360) c n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (   s\372 seinni ver\360i dregin inn \355 cache \341 cpu. */) N
+0 T () S
+() p 8 T () S 16 T () S 24 T () S 32 T (emit_forskeyti\(") S
+(SS) str
+("\);) p n
+(35) # () S 8 T () S 16 T () S 24 T () S 32 T (emit\(") S
+(MOV) str
+(",") p
+([BX+) str
+(" << loc.offset-2 << ") p
+(],DX) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit_forskeyti\(") S
+(SS) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit\(") S
+(MOV) str
+(",") p
+([BX+) str
+(" << loc.offset << ") p
+(],AX) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit\(") S
+(MOV) str
+(",") p
+([BP+) str
+(" << loc.offset-2 << ") p
+(],DX) str
+("\);) p n
+(40) # () S 8 T () S 16 T () S 24 T () S 32 T (emit\(") S
+(MOV) str
+(",") p
+([BP+) str
+(" << loc.offset << ") p
+(],AX) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (}) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (}) N
+0 T (}) N
+(45) # () N
+0 T () S
+(void) k
+( SkilaSegd::setUmlykjandiStef\(Stef* stef\) {) p n
+0 T () S 8 T (Segd::setUmlykjandiStef\(stef\);) N
+0 T () S 8 T (_s->setUmlykjandiStef\(stef\);) N
+0 T (}) N
+(50) # () N
+0 T () S
+(void) k
+( SkilaSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (_s->setHali\(\);) N
+0 T () S 8 T (_s->generateAXDX\(out\);) N
+0 T () S 8 T (emit\(") S
+(JMP) str
+(",l\(_umlykjandiStef->getEndLabel\(\)\)\);) p n
+(55) # (}) N
+0 T () N
+0 T () S
+(void) k
+( SkilaSegd::generatePUSH\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (generateAXDX\(out\);) N
+0 T (}) N
+(60) # () N
+0 T () S
+(void) k
+( SkilaSegd::generateJUMP\(ostream& out, ) p
+(int) k
+( iftrue, ) p
+(int) k
+( iffalse\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (generateAXDX\(out\);) N
+0 T (}) S
+(segd_assign.cpp) (Page 1/1) (Nov 14, 03 8:41) title
+border
+grestore
+(Printed by ) rhead
+(segd_operators.cpp, segd_assign.cpp) (10/15) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1-2) 11
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#include) K
+( ") p
+(segdir.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(smali.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(stef.h) str
+(") p n
+0 T () N
+(5) # () S
+(#pragma) K
+( warning\( disable : 4267\) ) p
+(/* size_t -> int conversion */) c n
+0 T () N
+0 T () S
+(using) K
+( ) p
+(namespace) K
+( ff;) p n
+0 T () N
+0 T (KallSegd::~KallSegd\(\) {) N
+(10) # () S 8 T (list<Segd*>::iterator i;) N
+0 T () S 8 T () S
+(for) K
+( \(i = _gildisVidfong.begin\(\); i != _gildisVidfong.end\(\); i++\)) p n
+0 T () S 8 T () S 16 T () S
+(delete) K
+( \(*i\);) p n
+0 T (}) N
+0 T () N
+(15) # () S
+(void) k
+( KallSegd::setUmlykjandiStef\(Stef* stef\) {) p n
+0 T () S 8 T (Segd::setUmlykjandiStef\(stef\);) N
+0 T () S 8 T (list<Segd*>::iterator i;) N
+0 T () S 8 T () S
+(for) K
+( \(i = _gildisVidfong.begin\(\); i != _gildisVidfong.end\(\); i++\)) p n
+0 T () S 8 T () S 16 T (\(*i\)->setUmlykjandiStef\(stef\);) N
+(20) # (}) N
+0 T () N
+0 T () S
+(void) k
+( KallSegd::addAfritsVidfang\(string& nafn\) {) p n
+0 T () S 8 T (_afritsVidfong.push_back\(nafn\);) N
+0 T (}) N
+(25) # () N
+0 T () S
+(void) k
+( KallSegd::addGildisVidfang\(Segd* s\) {) p n
+0 T () S 8 T (_gildisVidfong.push_back\(s\);) N
+0 T (}) N
+0 T () N
+(30) # () S
+(void) k
+( KallSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T () S
+(int) k
+( level = _umlykjandiStef->isDefinedUndirstef\(_nafn,) p n
+0 T () S 8 T () S 16 T (_afritsVidfong.size\(\), _gildisVidfong.size\(\)\);) N
+0 T () S 8 T () S
+(int) k
+( thislevel = _umlykjandiStef->getNestingLevel\(\);) p n
+0 T () N
+(35) # () S 8 T (string steflabel;) N
+0 T () S 8 T () S
+(if) K
+( \(level > 0\) {) p n
+0 T () S 8 T () S 16 T (steflabel = _umlykjandiStef->getUndirstefLabel\(_nafn,) N
+0 T () S 8 T () S 16 T () S 24 T (_afritsVidfong.size\(\), _gildisVidfong.size\(\)\);) N
+0 T () S 8 T (} ) S
+(else) K
+( {) p n
+(40) # () S 8 T () S 16 T () S
+(char) k
+( forskeyti[32];) p n
+0 T () S 8 T () S 16 T (::_snprintf\(forskeyti, 32, ") S
+(@%d,%d@) str
+(", _afritsVidfong.size\(\), _gildisVidfong.siz) p n
+0 T (e\(\)\);) N
+0 T () S 8 T () S 16 T (steflabel = forskeyti + quote\(_nafn\);) N
+0 T () S 8 T (}) N
+0 T () N
+(45) # () S 8 T () S
+(int) k
+( offset = 0;) p n
+0 T () S 8 T (list<string>::const_iterator s;) N
+0 T () S 8 T () S
+(for) K
+( \(s = _afritsVidfong.begin\(\); s != _afritsVidfong.end\(\); s++\) {) p n
+0 T () S 8 T () S 16 T (NafnSegd* n = ) S
+(new) K
+( NafnSegd\(*s\);) p n
+0 T () S 8 T () S 16 T (n->setUmlykjandiStef\(_umlykjandiStef\);) N
+(50) # () S 8 T () S 16 T (n->generatePUSH\(out\);) N
+0 T () S 8 T () S 16 T (offset += 4;) N
+0 T () S 8 T () S 16 T () S
+(delete) K
+( n;) p n
+0 T () S 8 T (}) N
+0 T () S 8 T (list<Segd*>::const_iterator i;) N
+(55) # () S 8 T () S
+(for) K
+( \(i = _gildisVidfong.begin\(\); i != _gildisVidfong.end\(\); i++\) {) p n
+0 T () S 8 T () S 16 T (\(*i\)->generatePUSH\(out\);) N
+0 T () S 8 T () S 16 T (offset += 4;) N
+0 T () S 8 T (}) N
+0 T () N
+(60) # () S 8 T () S
+(for) K
+( \() p
+(int) k
+( l = 0; l < thislevel && l < level; l++\) {) p n
+0 T () S 8 T () S 16 T () S
+(int) k
+( from = \(thislevel + 1 - l\) << 2;) p n
+0 T () S 8 T () S 16 T (emit_push\(") S
+([BP+) str
+(" << from << ") p
+(]) str
+("\);) p n
+0 T () S 8 T () S 16 T (emit_push\(") S
+(SI) str
+("\);) p n
+0 T () S 8 T () S 16 T (offset += 4;) N
+(65) # () S 8 T (}) N
+0 T () S 8 T () S
+(if) K
+( \(level > thislevel\) {) p n
+0 T () S 8 T () S 16 T () S
+(/* assert thislevel+1 == level */) c n
+0 T () S
+() p 8 T () S 16 T (emit_push\(") S
+(BP) str
+("\);) p n
+0 T () S 8 T () S 16 T (emit_push\(") S
+(SI) str
+("\);) p n
+(70) # () S 8 T () S 16 T (offset += 4;) N
+0 T () S 8 T (}) N
+0 T () N
+0 T () S 8 T () S
+(if) K
+( \(_hali && _umlykjandiStef->getNestingLevel\(\) >= level) p n
+0 T () S 8 T () S 16 T () S 24 T (&& 0 == _umlykjandiStef->getFjoldiVidfanga\(AFRIT\)) N
+(75) # () S 8 T () S 16 T () S 24 T (&& 0 == _afritsVidfong.size\(\)\) {) N
+0 T () S 8 T () S 16 T () S
+(/* h\351r er okkur \363h\346tt a\360 henda n\372verandi vakningarf\346rslu */) c n
+0 T () S
+() p 8 T () S 16 T (emit_push\(") S
+([BP+4]) str
+("\);  ) p
+(/* vendivistfang \376ess sem kalla\360i \355 okkur */) c n
+(segd_kall.cpp) (Page 1/2) (Nov 16, 03 13:18) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () S 16 T (offset += 2;) N
+0 T () S 8 T () S 16 T (emit\(") S
+(MOV) str
+(", ") p
+(BX,BP) str
+("\);) p n
+(80) # () S 8 T () S 16 T (emit\(") S
+(MOV) str
+(", ") p
+(DX,[BP]) str
+("\);   ) p
+(/* geymum st\375rihl \355 DX */) c n
+0 T () S
+() p 8 T () S 16 T (emit\(") S
+(MOV) str
+(", ") p
+(BP,SP) str
+("\);) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(ADD) str
+(", ") p
+(BP,) str
+(" << offset-2\);  ) p
+(/* BP -> dx hluta fremsta staks \355 n\375ja stafla ) c n
+0 T (*/) N
+0 T () S
+() p 8 T () S 16 T () S
+(int) k
+( henda = \( 1 + thislevel + _umlykjandiStef->getFjoldiVidfanga\(GILDI\)\) << 2;) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(ADD) str
+(", ") p
+(BX,) str
+(" << henda-1\);  ) p
+(/* BX -> n\375 sta\360setning staflans */) c n
+(85) # () S
+() p 8 T () S 16 T () S
+(/* f\346rum offset fj\366lda b\346ta fr\341 [BP] \355 [BX], tv\366 og tv\366 \355 einu */) c n
+0 T () S
+() p 8 T () S 16 T () S
+(int) k
+( loop = newlabel\(\);) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(XOR) str
+(", ") p
+(SI,SI) str
+("\);) p n
+0 T () S 8 T () S 16 T (emit_label\(l\(loop\)\);) N
+0 T () S 8 T () S 16 T (emit\(") S
+(MOV) str
+(", ") p
+(AX,[BP+SI]) str
+("\);) p n
+(90) # () S 8 T () S 16 T (emit_forskeyti\(") S
+(SS) str
+("\);) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(MOV) str
+(", ") p
+([BX+SI],AX) str
+("\);) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(DEC) str
+(", ") p
+(SI) str
+("\);) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(DEC) str
+(", ") p
+(SI) str
+("\);) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(CMP) str
+(", ") p
+(SI,) str
+(" << -offset\);) p n
+(95) # () S 8 T () S 16 T (emit\(") S
+(JA ) str
+(", l\(loop\)\);) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(ADD) str
+(", ") p
+(BX,) str
+(" << 2-offset\);) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(MOV) str
+(", ") p
+(SP,BX) str
+("\);) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(MOV) str
+(", ") p
+(BP,DX) str
+("\);) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(MOV) str
+(", ") p
+(SI,2) str
+("\);) p n
+(100) # () S 8 T () S 16 T (emit\(") S
+(JMP) str
+(", steflabel\);) p n
+0 T () S 8 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T (emit\(") S
+(CALL) str
+(", steflabel\);) p n
+0 T () S 8 T (}) N
+0 T () S 8 T (_umlykjandiStef->stackDelta\(-offset + \(_afritsVidfong.size\(\)<<2\)\);) N
+(105) # () N
+0 T () S 8 T (list<string>::const_reverse_iterator rs;) N
+0 T () S 8 T () S
+(for) K
+( \(rs = _afritsVidfong.rbegin\(\); rs != _afritsVidfong.rend\(\); rs++\) {) p n
+0 T () S 8 T () S 16 T (symloc loc = _umlykjandiStef->getSymbolLocation\(*rs\);) N
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(0 == loc.foldun && 0 == loc.offset\) {) p n
+(110) # () S 8 T () S 16 T () S 24 T () S
+(/* innflutt breyta */) c n
+0 T () S
+() p 8 T () S 16 T () S 24 T (emit\(") S
+(MOV) str
+(",") p
+(BX,%) str
+(" << quote\(_nafn\)\);) p n
+0 T () S 8 T () S 16 T () S 24 T (emit_forskeyti\(") S
+(DS) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (emit_pop\(") S
+([BX+2]) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (emit_forskeyti\(") S
+(DS) str
+("\);) p n
+(115) # () S 8 T () S 16 T () S 24 T (emit_pop\(") S
+([BX]) str
+("\);) p n
+0 T () S 8 T () S 16 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(loc.foldun > 0\) {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(/* assert\(nest <= _umlykjandiStef->getNestingLevel\(\) */) c n
+0 T () S
+() p 8 T () S 16 T () S 24 T () S 32 T () S
+(unsigned) k
+( ) p
+(int) k
+( nest = loc.foldun;) p n
+(120) # () S 8 T () S 16 T () S 24 T () S 32 T (nest++;    ) S
+(/* fram hj\341 vendivistf. */) c n
+0 T () S
+() p 8 T () S 16 T () S 24 T () S 32 T (nest = nest << 2;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit\(") S
+(MOV) str
+(",") p
+(BX,[BP+) str
+("<<nest<<") p
+(]) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit_forskeyti\(") S
+(SS) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit_pop\(") S
+([BX+) str
+(" << loc.offset-2 << ") p
+(]) str
+("\);) p n
+(125) # () S 8 T () S 16 T () S 24 T () S 32 T (emit_forskeyti\(") S
+(SS) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit_pop\(") S
+([BX+) str
+(" << loc.offset << ") p
+(]) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit_pop\(") S
+([BP+) str
+(" << loc.offset-2 << ") p
+(]) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit_pop\(") S
+([BP+) str
+(" << loc.offset << ") p
+(]) str
+("\);) p n
+(130) # () S 8 T () S 16 T () S 24 T (}) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (}) N
+0 T (}) S
+(segd_kall.cpp) (Page 2/2) (Nov 16, 03 13:18) title
+border
+grestore
+(Printed by ) rhead
+(segd_kall.cpp) (11/15) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1-2) 12
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#include) K
+( ") p
+(segdir.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(smali.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(stef.h) str
+(") p n
+0 T () N
+(5) # () S
+(using) K
+( ) p
+(namespace) K
+( ff;) p n
+0 T () N
+0 T (EfSegd::~EfSegd\(\) {) N
+0 T () S 8 T (vector<Segd*>::iterator s;) N
+0 T () S 8 T () S
+(for) K
+( \(s = _skilyrdi.begin\(\); s != _skilyrdi.end\(\); s++\)) p n
+(10) # () S 8 T () S 16 T () S
+(delete) K
+( \(*s\);) p n
+0 T () S 8 T (vector<list<Segd*> >::iterator i;) N
+0 T () S 8 T (list<Segd*>::iterator j;) N
+0 T () S 8 T () S
+(for) K
+( \(i = _segdarunur.begin\(\); i != _segdarunur.end\(\); i++\)) p n
+0 T () S 8 T () S 16 T () S
+(for) K
+( \(j = \(*i\).begin\(\); j != \(*i\).end\(\); j++\)) p n
+(15) # () S 8 T () S 16 T () S 24 T () S
+(delete) K
+( \(*j\);) p n
+0 T () S 8 T () S
+(for) K
+( \(j = _annarsruna.begin\(\); j != _annarsruna.end\(\); j++\)) p n
+0 T () S 8 T () S 16 T () S
+(delete) K
+( \(*j\);) p n
+0 T (}) N
+0 T () N
+(20) # () S
+(void) k
+( EfSegd::setUmlykjandiStef\(Stef* stef\) {) p n
+0 T () S 8 T (Segd::setUmlykjandiStef\(stef\);) N
+0 T () S 8 T (vector<Segd*>::iterator s;) N
+0 T () S 8 T () S
+(for) K
+( \(s = _skilyrdi.begin\(\); s != _skilyrdi.end\(\); s++\)) p n
+0 T () S 8 T () S 16 T (\(*s\)->setUmlykjandiStef\(stef\);) N
+(25) # () S 8 T (vector<list<Segd*> >::iterator i;) N
+0 T () S 8 T (list<Segd*>::iterator j;) N
+0 T () S 8 T () S
+(for) K
+( \(i = _segdarunur.begin\(\); i != _segdarunur.end\(\); i++\)) p n
+0 T () S 8 T () S 16 T () S
+(for) K
+( \(j = \(*i\).begin\(\); j != \(*i\).end\(\); j++\)) p n
+0 T () S 8 T () S 16 T () S 24 T (\(*j\)->setUmlykjandiStef\(stef\);) N
+(30) # () S 8 T () S
+(for) K
+( \(j = _annarsruna.begin\(\); j != _annarsruna.end\(\); j++\)) p n
+0 T () S 8 T () S 16 T (\(*j\)->setUmlykjandiStef\(stef\);) N
+0 T (}) N
+0 T () N
+0 T () S
+(void) k
+( EfSegd::addSkilyrdi\(Segd* s\) {) p n
+(35) # () S 8 T (_skilyrdi.push_back\(s\);) N
+0 T () S 8 T (list<Segd*> a;) N
+0 T () S 8 T (_segdarunur.push_back\(a\);) N
+0 T (}) N
+0 T () N
+(40) # () S
+(void) k
+( EfSegd::addSegd\(Segd* s\) {) p n
+0 T () S 8 T (_segdarunur.back\(\).push_back\(s\);) N
+0 T (}) N
+0 T () N
+0 T () S
+(void) k
+( EfSegd::addAnnarsSegd\(Segd* s\) {) p n
+(45) # () S 8 T (_annarsruna.push_back\(s\);) N
+0 T (}) N
+0 T () N
+0 T () S
+(void) k
+( EfSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T () S
+(int) k
+( ut = newlabel\(\);) p n
+(50) # () S 8 T () S
+(/* assert _skilyrdi.size\(\) == _segdarunur.size\(\) */) c n
+0 T () N
+0 T () S
+() p 8 T (size_t fj_blokka = _skilyrdi.size\(\);) N
+0 T () S 8 T () S
+(for) K
+( \(size_t i = 0; i < fj_blokka; i++\) {) p n
+0 T () S 8 T () S 16 T () S
+(int) k
+( next = newlabel\(\);) p n
+(55) # () S 8 T () S 16 T (_skilyrdi[i]->generateJUMP\(out, 0, next\);) N
+0 T () S 8 T () S 16 T (list<Segd*>::const_iterator s;) N
+0 T () S 8 T () S 16 T () S
+(for) K
+( \(s = _segdarunur[i].begin\(\); s != _segdarunur[i].end\(\); s++\) {) p n
+0 T () S 8 T () S 16 T () S 24 T (list<Segd*>::const_iterator t = s;) N
+0 T () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(++t != _segdarunur[i].end\(\)\) {) p n
+(60) # () S 8 T () S 16 T () S 24 T () S 32 T (\(*s\)->generateNOVAL\(out\);) N
+0 T () S 8 T () S 16 T () S 24 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(if) K
+( \(_hali\) \(*s\)->setHali\(\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (\(*s\)->generateAXDX\(out\);) N
+0 T () S 8 T () S 16 T () S 24 T (}) N
+(65) # () S 8 T () S 16 T (}) N
+0 T () S 8 T () S 16 T (emit\(") S
+(JMP) str
+(",l\(ut\)\);) p n
+0 T () S 8 T () S 16 T (emit_label\(l\(next\)\);) N
+0 T () S 8 T (}) N
+0 T () N
+(70) # () S 8 T (list<Segd*>::const_iterator s;) N
+0 T () S 8 T () S
+(for) K
+( \(s = _annarsruna.begin\(\); s != _annarsruna.end\(\); s++\) {) p n
+0 T () S 8 T () S 16 T (list<Segd*>::const_iterator t = s;) N
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(++t != _annarsruna.end\(\)\) {) p n
+0 T () S 8 T () S 16 T () S 24 T (\(*s\)->generateNOVAL\(out\);) N
+(75) # () S 8 T () S 16 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(_hali\) \(*s\)->setHali\(\);) p n
+0 T () S 8 T () S 16 T () S 24 T (\(*s\)->generateAXDX\(out\);) N
+0 T () S 8 T () S 16 T (}) N
+(segd_cond.cpp) (Page 1/2) (Nov 11, 03 17:11) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T (}) N
+(80) # () S 8 T (emit_label\(l\(ut\)\);) N
+0 T (}) S
+(segd_cond.cpp) (Page 2/2) (Nov 11, 03 17:11) title
+border
+grestore
+(Printed by ) rhead
+(segd_cond.cpp) (12/15) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1-2) 13
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#include) K
+( ") p
+(segdir.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(smali.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(stef.h) str
+(") p n
+0 T () N
+(5) # () S
+(using) K
+( ) p
+(namespace) K
+( ff;) p n
+0 T () N
+0 T (LykkjuSegd::~LykkjuSegd\(\) {) N
+0 T () S 8 T (list<Segd*>::iterator i;) N
+0 T () S 8 T () S
+(for) K
+( \(i = _segdaruna.begin\(\); i != _segdaruna.end\(\); i++\)) p n
+(10) # () S 8 T () S 16 T () S
+(delete) K
+( \(*i\);) p n
+0 T (}) N
+0 T () N
+0 T () S
+(void) k
+( LykkjuSegd::setUmlykjandiStef\(Stef* stef\) {) p n
+0 T () S 8 T (Segd::setUmlykjandiStef\(stef\);) N
+(15) # () S 8 T (list<Segd*>::iterator i;) N
+0 T () S 8 T () S
+(for) K
+( \(i = _segdaruna.begin\(\); i != _segdaruna.end\(\); i++\)) p n
+0 T () S 8 T () S 16 T (\(*i\)->setUmlykjandiStef\(stef\);) N
+0 T (}) N
+0 T () N
+(20) # () S
+(void) k
+( LykkjuSegd::addSegd\(Segd* s\) {) p n
+0 T () S 8 T (_segdaruna.push_back\(s\);) N
+0 T (}) N
+0 T () N
+0 T () S
+(void) k
+( LykkjuSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+(25) # () S 8 T (_umlykjandiStef->markStack\(\);) N
+0 T () S 8 T (_umlykjandiStef->pushUtLabel\(_exitLabel\);) N
+0 T () N
+0 T () S 8 T () S
+(int) k
+( begin = newlabel\(\);) p n
+0 T () S 8 T (emit_label\(l\(begin\)\);) N
+(30) # () N
+0 T () S 8 T (list<Segd*>::const_iterator s;) N
+0 T () S 8 T () S
+(for) K
+( \(s = _segdaruna.begin\(\); s != _segdaruna.end\(\); s++\) {) p n
+0 T () S 8 T () S 16 T (\(*s\)->generateNOVAL\(out\);) N
+0 T () S 8 T () S 16 T () S
+(/* list<Segd*>::const_iterator t = s;) c n
+(35) # () S 8 T () S 16 T (if \(++t != _segdaruna.end\(\)\) {) N
+0 T () S 8 T () S 16 T () S 24 T (\(*s\)->generateNOVAL\(out\);) N
+0 T () S 8 T () S 16 T (} else {) N
+0 T () S 8 T () S 16 T () S 24 T (\(*s\)->generateAXDX\(out\);) N
+0 T () S 8 T () S 16 T (}*/) N
+(40) # () S
+() p 8 T (}) N
+0 T () S 8 T (emit\(") S
+(JMP) str
+(",l\(begin\)\);) p n
+0 T () N
+0 T () S 8 T (emit_label\(l\(_exitLabel\)\);) N
+0 T () S 8 T (_umlykjandiStef->popUtLabel\(\);) N
+(45) # () S 8 T (_umlykjandiStef->unmarkStack\(\);) N
+0 T () S 8 T (emit\(") S
+(MOV) str
+(", ") p
+(AX,ES) str
+("\);) p n
+0 T () S 8 T (emit\(") S
+(MOV) str
+(", ") p
+(DX,ES) str
+("\);) p n
+0 T (}) N
+0 T () N
+(50) # (MedanSegd::~MedanSegd\(\) {) N
+0 T () S 8 T (list<Segd*>::iterator i;) N
+0 T () S 8 T () S
+(for) K
+( \(i = _segdaruna.begin\(\); i != _segdaruna.end\(\); i++\)) p n
+0 T () S 8 T () S 16 T () S
+(delete) K
+( \(*i\);) p n
+0 T () S 8 T () S
+(delete) K
+( _cond;) p n
+(55) # (}) N
+0 T () N
+0 T () S
+(void) k
+( MedanSegd::setUmlykjandiStef\(Stef* stef\) {) p n
+0 T () S 8 T (Segd::setUmlykjandiStef\(stef\);) N
+0 T () S 8 T (list<Segd*>::iterator i;) N
+(60) # () S 8 T () S
+(for) K
+( \(i = _segdaruna.begin\(\); i != _segdaruna.end\(\); i++\)) p n
+0 T () S 8 T () S 16 T (\(*i\)->setUmlykjandiStef\(stef\);) N
+0 T () S 8 T (_cond->setUmlykjandiStef\(stef\);) N
+0 T (}) N
+0 T () N
+(65) # () S
+(void) k
+( MedanSegd::addSegd\(Segd* s\) {) p n
+0 T () S 8 T (_segdaruna.push_back\(s\);) N
+0 T (}) N
+0 T () N
+0 T () S
+(void) k
+( MedanSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+(70) # () S 8 T (_umlykjandiStef->markStack\(\);) N
+0 T () S 8 T (_umlykjandiStef->pushUtLabel\(_exitLabel\);) N
+0 T () N
+0 T () S 8 T () S
+(int) k
+( begin = newlabel\(\);) p n
+0 T () S 8 T (emit_label\(l\(begin\)\);) N
+(75) # () N
+0 T () S 8 T (_cond->generateJUMP\(out, 0, _exitLabel\);) N
+0 T () N
+0 T () S 8 T (list<Segd*>::const_iterator s;) N
+(segd_loop.cpp) (Page 1/2) (Nov 18, 03 17:57) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () S
+(for) K
+( \(s = _segdaruna.begin\(\); s != _segdaruna.end\(\); s++\) {) p n
+(80) # () S 8 T () S 16 T (\(*s\)->generateNOVAL\(out\);) N
+0 T () S 8 T () S 16 T () S
+(/*list<Segd*>::const_iterator t = s;) c n
+0 T () S 8 T () S 16 T (if \(++t != _segdaruna.end\(\)\) {) N
+0 T () S 8 T () S 16 T () S 24 T (\(*s\)->generateNOVAL\(out\);) N
+0 T () S 8 T () S 16 T (} else {) N
+(85) # () S 8 T () S 16 T () S 24 T (\(*s\)->generateAXDX\(out\);) N
+0 T () S 8 T () S 16 T (}*/) N
+0 T () S
+() p 8 T (}) N
+0 T () S 8 T (emit\(") S
+(JMP) str
+(",l\(begin\)\);) p n
+0 T () N
+(90) # () S 8 T (emit_label\(l\(_exitLabel\)\);) N
+0 T () S 8 T (_umlykjandiStef->popUtLabel\(\);) N
+0 T () S 8 T (_umlykjandiStef->unmarkStack\(\);) N
+0 T () S 8 T (emit\(") S
+(MOV) str
+(", ") p
+(AX,ES) str
+("\);) p n
+0 T () S 8 T (emit\(") S
+(MOV) str
+(", ") p
+(DX,ES) str
+("\);) p n
+(95) # (}) N
+0 T () N
+0 T () S
+(void) k
+( UtSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T () S
+(int) k
+( mark = _umlykjandiStef->lastStackMark\(\);) p n
+0 T () S 8 T () S
+(if) K
+( \(-1 == mark\) {) p n
+(100) # () S 8 T () S 16 T (reportError\(") S
+(\332t-seg\360 getur a\360eins komi\360 fyrir innan \355 lykkjuseg\360.) str
+("\);) p n
+0 T () S 8 T (}) N
+0 T () S 8 T () S
+(int) k
+( pop = _umlykjandiStef->getStackSize\(\) - mark;) p n
+0 T () S 8 T () S
+(if) K
+( \(pop > 0\) emit\(") p
+(ADD) str
+(",") p
+(SP,) str
+(" << pop\);) p n
+0 T () S 8 T (emit\(") S
+(JMP) str
+(",l\(_umlykjandiStef->getUtLabel\(\)\)\);) p n
+(105) # (}) N
+0 T () N
+0 T () S
+(void) k
+( UtSegd::generateJUMP\(ostream& out, ) p
+(int) k
+( iftrue, ) p
+(int) k
+( iffalse\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (generateAXDX\(out\);) N
+0 T (}) N
+(110) # () N
+0 T () S
+(void) k
+( UtSegd::generatePUSH\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (generateAXDX\(out\);) N
+0 T (}) N
+(segd_loop.cpp) (Page 2/2) (Nov 18, 03 17:57) title
+border
+grestore
+(Printed by ) rhead
+(segd_loop.cpp) (13/15) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1,1) 14
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#include) K
+( ") p
+(segdir.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(smali.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(stef.h) str
+(") p n
+0 T () N
+(5) # () S
+(using) K
+( ) p
+(namespace) K
+( ff;) p n
+0 T () N
+0 T () S
+(void) k
+( StofnSegd::setUmlykjandiStef\(Stef* stef\) {) p n
+0 T () S 8 T (Segd::setUmlykjandiStef\(stef\);) N
+0 T () S 8 T (list<Segd*>::iterator i;) N
+(10) # () S 8 T () S
+(for) K
+( \(i = _segdaruna.begin\(\); i != _segdaruna.end\(\); i++\)) p n
+0 T () S 8 T () S 16 T (\(*i\)->setUmlykjandiStef\(stef\);) N
+0 T (}) N
+0 T () N
+0 T () S
+(void) k
+( StofnSegd::addSegd\(Segd* s\) {) p n
+(15) # () S 8 T (_segdaruna.push_back\(s\);) N
+0 T (}) N
+0 T () N
+0 T () S
+(void) k
+( StofnSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (list<Segd*>::const_iterator s;) N
+(20) # () S 8 T () S
+(for) K
+( \(s = _segdaruna.begin\(\); s != _segdaruna.end\(\); s++\) {) p n
+0 T () S 8 T () S 16 T (list<Segd*>::const_iterator t = s;) N
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(++t != _segdaruna.end\(\)\) {) p n
+0 T () S 8 T () S 16 T () S 24 T (\(*s\)->generateNOVAL\(out\);) N
+0 T () S 8 T () S 16 T (} ) S
+(else) K
+( {) p n
+(25) # () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(_hali\) \(*s\)->setHali\(\);) p n
+0 T () S 8 T () S 16 T () S 24 T (\(*s\)->generateAXDX\(out\);) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (}) N
+0 T (}) N
+(30) # () N
+0 T () S
+(void) k
+( StofnSegd::generateJUMP\(ostream& out, ) p
+(int) k
+( iftrue, ) p
+(int) k
+( iffalse\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (list<Segd*>::const_iterator s;) N
+0 T () S 8 T () S
+(for) K
+( \(s = _segdaruna.begin\(\); s != _segdaruna.end\(\); s++\) {) p n
+0 T () S 8 T () S 16 T (list<Segd*>::const_iterator t = s;) N
+(35) # () S 8 T () S 16 T () S
+(if) K
+( \(++t != _segdaruna.end\(\)\) {) p n
+0 T () S 8 T () S 16 T () S 24 T (\(*s\)->generateNOVAL\(out\);) N
+0 T () S 8 T () S 16 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(_hali\) \(*s\)->setHali\(\);) p n
+0 T () S 8 T () S 16 T () S 24 T (\(*s\)->generateJUMP\(out, iftrue, iffalse\);) N
+(40) # () S 8 T () S 16 T (}) N
+0 T () S 8 T (}) N
+0 T (}) N
+0 T () N
+0 T () S
+(void) k
+( StofnSegd::generatePUSH\(ostream& out\) ) p
+(const) K
+( {) p n
+(45) # () S 8 T (list<Segd*>::const_iterator s;) N
+0 T () S 8 T () S
+(for) K
+( \(s = _segdaruna.begin\(\); s != _segdaruna.end\(\); s++\) {) p n
+0 T () S 8 T () S 16 T (list<Segd*>::const_iterator t = s;) N
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(++t != _segdaruna.end\(\)\) {) p n
+0 T () S 8 T () S 16 T () S 24 T (\(*s\)->generateNOVAL\(out\);) N
+(50) # () S 8 T () S 16 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(_hali\) \(*s\)->setHali\(\);) p n
+0 T () S 8 T () S 16 T () S 24 T (\(*s\)->generatePUSH\(out\);) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (}) N
+(55) # (}) N
+0 T () N
+0 T () S
+(void) k
+( StofnSegd::generateNOVAL\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (list<Segd*>::const_iterator s;) N
+0 T () S 8 T () S
+(for) K
+( \(s = _segdaruna.begin\(\); s != _segdaruna.end\(\); s++\) {) p n
+(60) # () S 8 T () S 16 T (list<Segd*>::const_iterator t = s;) N
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(++t != _segdaruna.end\(\)\) {) p n
+0 T () S 8 T () S 16 T () S 24 T (\(*s\)->generateNOVAL\(out\);) N
+0 T () S 8 T () S 16 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(_hali\) \(*s\)->setHali\(\);) p n
+(65) # () S 8 T () S 16 T () S 24 T (\(*s\)->generateNOVAL\(out\);) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (}) N
+0 T (}) S
+(segd_stofn.cpp) (Page 1/1) (Nov 18, 03 18:03) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#include) K
+( ") p
+(segdir.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(smali.h) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(stef.h) str
+(") p n
+0 T () N
+(5) # () S
+(using) K
+( ) p
+(namespace) K
+( ff;) p n
+0 T () N
+0 T () S
+(void) k
+( NafnSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T () S
+(if) K
+( \(!_umlykjandiStef->isDefined\(_nafn\)\) {) p n
+0 T () S 8 T () S 16 T (reportError\(") S
+(Nafni\360 \\"%s\\" er ekki skilgreint.) str
+(", _nafn.c_str\(\)\);) p n
+(10) # () S 8 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T (symloc loc = _umlykjandiStef->getSymbolLocation\(_nafn\);) N
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(0 == loc.foldun && 0 == loc.offset\) {) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(/* innflutt breyta */) c n
+0 T () S
+() p 8 T () S 16 T () S 24 T (emit\(") S
+(MOV) str
+(",") p
+(BX,%) str
+(" << quote\(_nafn\)\);) p n
+(15) # () S 8 T () S 16 T () S 24 T (emit_forskeyti\(") S
+(DS) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (emit\(") S
+(MOV) str
+(",") p
+(DX,[BX]) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (emit_forskeyti\(") S
+(DS) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (emit\(") S
+(MOV) str
+(",") p
+(AX,[BX+2]) str
+("\);) p n
+0 T () S 8 T () S 16 T (} ) S
+(else) K
+( {) p n
+(20) # () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(loc.foldun > 0\) {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(/* assert\(nest <= _umlykjandiStef->getNestingLevel\(\) */) c n
+0 T () S
+() p 8 T () S 16 T () S 24 T () S 32 T () S
+(unsigned) k
+( ) p
+(int) k
+( nest = loc.foldun;) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (nest++;    ) S
+(/* fram hj\341 vendivistf. */) c n
+0 T () S
+() p 8 T () S 16 T () S 24 T () S 32 T (nest = nest << 2; ) S
+(/* margf. m. 4 */) c n
+(25) # () S
+() p 8 T () S 16 T () S 24 T () S 32 T (emit\(") S
+(MOV) str
+(",") p
+(BX,[BP+) str
+("<<nest<<") p
+(]) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(/* Vi\360 h\366fum fremri addressuna \341 undan \376v\355 \376\341 er l\355klegra a\360) c n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (   s\372 seinni ver\360i dregin inn \355 cache \341 cpu. */) N
+0 T () S
+() p 8 T () S 16 T () S 24 T () S 32 T (emit_forskeyti\(") S
+(SS) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit\(") S
+(MOV) str
+(",") p
+(DX,[BX+) str
+(" << loc.offset-2 << ") p
+(]) str
+("\);) p n
+(30) # () S 8 T () S 16 T () S 24 T () S 32 T (emit_forskeyti\(") S
+(SS) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit\(") S
+(MOV) str
+(",") p
+(AX,[BX+) str
+(" << loc.offset << ") p
+(]) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit\(") S
+(MOV) str
+(",") p
+(DX,[BP+) str
+(" << loc.offset-2 << ") p
+(]) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit\(") S
+(MOV) str
+(",") p
+(AX,[BP+) str
+(" << loc.offset << ") p
+(]) str
+("\);) p n
+(35) # () S 8 T () S 16 T () S 24 T (}) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (}) N
+0 T (}) N
+0 T () N
+(40) # () S
+(void) k
+( NafnSegd::generatePUSH\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T () S
+(if) K
+( \(!_umlykjandiStef->isDefined\(_nafn\)\) {) p n
+0 T () S 8 T () S 16 T (reportError\(") S
+(Nafni\360 \\"%s\\" er ekki skilgreint.) str
+(", _nafn.c_str\(\)\);) p n
+0 T () S 8 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T (symloc loc = _umlykjandiStef->getSymbolLocation\(_nafn\);) N
+(45) # () S 8 T () S 16 T () S
+(if) K
+( \(0 == loc.foldun && 0 == loc.offset\) {) p n
+0 T () S 8 T () S 16 T () S 24 T (emit\(") S
+(MOV) str
+(",") p
+(BX,%) str
+(" << quote\(_nafn\)\);) p n
+0 T () S 8 T () S 16 T () S 24 T (emit_forskeyti\(") S
+(DS) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (emit_push\(") S
+([BX+2]) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (emit_forskeyti\(") S
+(DS) str
+("\);) p n
+(50) # () S 8 T () S 16 T () S 24 T (emit_push\(") S
+([BX]) str
+("\);) p n
+0 T () S 8 T () S 16 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(loc.foldun > 0\) {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(/* assert\(nest <= _umlykjandiStef->getNestingLevel\(\) */) c n
+0 T () S
+() p 8 T () S 16 T () S 24 T () S 32 T () S
+(unsigned) k
+( ) p
+(int) k
+( nest = loc.foldun;) p n
+(55) # () S 8 T () S 16 T () S 24 T () S 32 T (nest++;    ) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (nest = nest << 2;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit\(") S
+(MOV) str
+(",") p
+(BX,[BP+) str
+("<<nest<<") p
+(]) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit_forskeyti\(") S
+(SS) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit_push\(") S
+([BX+) str
+(" << loc.offset << ") p
+(]) str
+("\);) p n
+(60) # () S 8 T () S 16 T () S 24 T () S 32 T (emit_forskeyti\(") S
+(SS) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit_push\(") S
+([BX+) str
+(" << loc.offset-2 << ") p
+(]) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit_push\(") S
+([BP+) str
+(" << loc.offset << ") p
+(]) str
+("\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (emit_push\(") S
+([BP+) str
+(" << loc.offset-2 << ") p
+(]) str
+("\);) p n
+(65) # () S 8 T () S 16 T () S 24 T (}) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (}) N
+0 T (}) N
+0 T () N
+(70) # () N
+0 T (HeiltoluSegd::HeiltoluSegd\() S
+(int) k
+( tala\) {) p n
+0 T () S 8 T (_tala = tala;) N
+0 T (}) N
+0 T () N
+(75) # (HeiltoluSegd::HeiltoluSegd\(string& les\) {) N
+0 T () S 8 T () S
+(bool) k
+( formerki = ) p
+(false) k
+(;) p n
+0 T () S 8 T () S
+(int) k
+( radix = 10;) p n
+0 T () S 8 T (_tala = 0;) N
+(segd_value.cpp) (Page 1/3) (Nov 16, 03 12:51) title
+border
+grestore
+(Printed by ) rhead
+(segd_stofn.cpp, segd_value.cpp) (14/15) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (2-3) 15
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T (string::iterator i = les.begin\(\);) N
+(80) # () S 8 T () S
+(while) K
+( \(i != les.end\(\)\) {) p n
+0 T () S 8 T () S 16 T () S
+(char) k
+( c = *\(i++\);) p n
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(c == ') p
+(-) str
+('\) formerki = !formerki;) p n
+0 T () S 8 T () S 16 T () S
+(else) K
+( ) p
+(if) K
+( \(c == ') p
+($) str
+('\) radix = 16;) p n
+0 T () S 8 T () S 16 T () S
+(else) K
+( ) p
+(switch) K
+( \(c\) {) p n
+(85) # () S 8 T () S 16 T () S
+(case) K
+( ') p
+(0) str
+(': ) p
+(case) K
+( ') p
+(1) str
+(': ) p
+(case) K
+( ') p
+(2) str
+(':) p n
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+(3) str
+(': ) p
+(case) K
+( ') p
+(4) str
+(': ) p
+(case) K
+( ') p
+(5) str
+(':) p n
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+(6) str
+(': ) p
+(case) K
+( ') p
+(7) str
+(': ) p
+(case) K
+( ') p
+(8) str
+(':) p n
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+(9) str
+(':) p n
+0 T () S 8 T () S 16 T () S 24 T (_tala *= radix;) N
+(90) # () S 8 T () S 16 T () S 24 T (_tala += \(c - ') S
+(0) str
+('\);) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(break) K
+(;) p n
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+(a) str
+(': ) p
+(case) K
+( ') p
+(b) str
+(': ) p
+(case) K
+( ') p
+(c) str
+(':) p n
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+(d) str
+(': ) p
+(case) K
+( ') p
+(e) str
+(': ) p
+(case) K
+( ') p
+(f) str
+(':) p n
+0 T () S 8 T () S 16 T () S 24 T (_tala <<= 4;) N
+(95) # () S 8 T () S 16 T () S 24 T (_tala |= \(c - ') S
+(a) str
+('\)+10;) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(break) K
+(;) p n
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+(A) str
+(': ) p
+(case) K
+( ') p
+(B) str
+(': ) p
+(case) K
+( ') p
+(C) str
+(':) p n
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+(D) str
+(': ) p
+(case) K
+( ') p
+(E) str
+(': ) p
+(case) K
+( ') p
+(F) str
+(':) p n
+0 T () S 8 T () S 16 T () S 24 T (_tala <<= 4;) N
+(100) # () S 8 T () S 16 T () S 24 T (_tala |= \(c - ') S
+(A) str
+('\)+10;) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(break) K
+(;) p n
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (}) N
+0 T (}) N
+(105) # () N
+0 T () S
+(void) k
+( HeiltoluSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (emit\(") S
+(MOV) str
+(", ") p
+(AX,) str
+("<<_tala\);) p n
+0 T () S 8 T (emit\(") S
+(MOV) str
+(", ") p
+(DX,SI) str
+("\);) p n
+0 T (}) N
+(110) # () N
+0 T () S
+(void) k
+( HeiltoluSegd::generatePUSH\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (emit_push\(_tala\);) N
+0 T () S 8 T (emit_push\(") S
+(SI) str
+("\);) p n
+0 T (}) N
+(115) # () N
+0 T () S
+(void) k
+( HeiltoluSegd::generateJUMP\(ostream& out, ) p
+(int) k
+( iftrue, ) p
+(int) k
+( iffalse\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (emit\(") S
+(JMP) str
+(",l\(iftrue\)\);) p n
+0 T (}) N
+0 T () N
+(120) # () S
+(void) k
+( StrengSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (emit\(") S
+(CALL) str
+(",") p
+(@@@\\\\[n\341\355streng\\\\]) str
+("\);) p n
+0 T () S 8 T (out << ") S
+(\\t\\") str
+(" << _s << ") p
+(\\"\\n) str
+(";) p n
+0 T (}) N
+0 T () N
+(125) # () S
+(void) k
+( StrengSegd::generateJUMP\(ostream& out, ) p
+(int) k
+( iftrue, ) p
+(int) k
+( iffalse\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (emit\(") S
+(JMP) str
+(",l\(iftrue\)\);) p n
+0 T (}) N
+0 T () N
+0 T (FleytitoluSegd::FleytitoluSegd\(string& les\) {) N
+(130) # () S 8 T () S
+(bool) k
+( formerki = ) p
+(false) k
+(;) p n
+0 T () S 8 T () S
+(int) k
+( i = 0;) p n
+0 T () S 8 T () S
+(while) K
+( \(') p
+(-) str
+(' == les[i++]\) formerki = !formerki;) p n
+0 T () S 8 T (--i;) N
+0 T () S 8 T () S
+(double) k
+( d = 0.0;) p n
+(135) # () S 8 T (sscanf\(les.substr\(i\).c_str\(\), ") S
+(%lf) str
+(", &d\);) p n
+0 T () S 8 T () S
+(if) K
+( \(0.0 == d\) {) p n
+0 T () S 8 T () S 16 T (_ax = 0;) N
+0 T () S 8 T () S 16 T (_dx = 0x0004;) N
+0 T () S 8 T (} ) S
+(else) K
+( {) p n
+(140) # () S 8 T () S 16 T (_ax = _dx = 0;) N
+0 T () S 8 T () S 16 T () S
+(unsigned) k
+( ) p
+(char) k
+(* pd = \() p
+(unsigned) k
+( ) p
+(char) k
+(*\) &d;) p n
+0 T () S 8 T () S 16 T () S
+(unsigned) k
+( ) p
+(int) k
+( ieee_exponent = \(\(pd[7] & 0x7f\)<<4\) | \(\(pd[6] & 0xf0\) >> 4\);) p n
+0 T () S 8 T () S 16 T () S
+(short) k
+( exponent = ieee_exponent - 1023;) p n
+0 T () S 8 T () S 16 T (_ax = \(pd[6] & 0x0f\) << 12;) N
+(145) # () S 8 T () S 16 T (_ax |= pd[5] << 4;) N
+0 T () S 8 T () S 16 T (_ax |= pd[4] >> 4;) N
+0 T () S 8 T () S 16 T (_dx = \(exponent << 5\) | \(formerki ? 0x10 : 0\) | 0x04;) N
+0 T () S 8 T () S 16 T (_dx ^= 0x8000;) N
+0 T () S 8 T (}) N
+(150) # (}) N
+0 T () N
+0 T () S
+(void) k
+( FleytitoluSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (emit\(") S
+(MOV) str
+(",") p
+(AX,) str
+(" << _ax\);) p n
+0 T () S 8 T (emit\(") S
+(MOV) str
+(",") p
+(DX,) str
+(" << _dx\);) p n
+(155) # (}) N
+0 T () N
+(segd_value.cpp) (Page 2/3) (Nov 16, 03 12:51) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (void) k
+( FleytitoluSegd::generatePUSH\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (emit_push\(_ax\);) N
+0 T () S 8 T (emit_push\(_dx\);) N
+(160) # (}) N
+0 T () N
+0 T () S
+(void) k
+( FleytitoluSegd::generateJUMP\(ostream& out, ) p
+(int) k
+( iftrue, ) p
+(int) k
+( iffalse\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (emit\(") S
+(JMP) str
+(",l\(iftrue\)\);) p n
+0 T (}) N
+(165) # () N
+0 T () S
+(void) k
+( TomaSegd::generateAXDX\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (emit\(") S
+(MOV) str
+(",") p
+(AX,ES) str
+("\);) p n
+0 T () S 8 T (emit\(") S
+(MOV) str
+(",") p
+(DX,ES) str
+("\);) p n
+0 T (}) N
+(170) # () N
+0 T () S
+(void) k
+( TomaSegd::generatePUSH\(ostream& out\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (emit_push\(") S
+(ES) str
+("\);) p n
+0 T () S 8 T (emit_push\(") S
+(ES) str
+("\);) p n
+0 T (}) N
+(175) # () N
+0 T () S
+(void) k
+( TomaSegd::generateJUMP\(ostream& out, ) p
+(int) k
+( iftrue, ) p
+(int) k
+( iffalse\) ) p
+(const) K
+( {) p n
+0 T () S 8 T (emit\(") S
+(JMP) str
+(",l\(iffalse\)\);) p n
+0 T (}) S
+(segd_value.cpp) (Page 3/3) (Nov 16, 03 12:51) title
+border
+grestore
+(Printed by ) rhead
+(segd_value.cpp) (15/15) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+
+%%Trailer
+end
+%%EOF

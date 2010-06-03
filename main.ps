@@ -1,0 +1,1499 @@
+%!PS-Adobe-3.0
+%%Title: main.cpp
+%%For: 
+%%Creator: a2ps version 4.13
+%%CreationDate: Tue Nov 18 19:49:56 2003
+%%BoundingBox: 24 24 571 818
+%%DocumentData: Clean7Bit
+%%Orientation: Landscape
+%%Pages: 3
+%%PageOrder: Ascend
+%%DocumentMedia: A4 595 842 0 () ()
+%%DocumentNeededResources: font Courier
+%%+ font Courier-Bold
+%%+ font Courier-BoldOblique
+%%+ font Courier-Oblique
+%%+ font Helvetica
+%%+ font Helvetica-Bold
+%%+ font Symbol
+%%+ font Times-Bold
+%%DocumentProcessColors: Black 
+%%DocumentSuppliedResources: procset a2ps-a2ps-hdr
+%%+ procset a2ps-black+white-Prolog
+%%+ encoding ISO-8859-1Encoding
+%%EndComments
+/a2psdict 200 dict def
+a2psdict begin
+%%BeginProlog
+%%Copyright: (c) 1988, 89, 90, 91, 92, 93 Miguel Santana
+%%Copyright: (c) 1995, 96, 97, 98 Akim Demaille, Miguel Santana
+% Check PostScript language level.
+/languagelevel where {
+  pop /gs_languagelevel languagelevel def
+} {
+  /gs_languagelevel 1 def
+} ifelse
+
+% EPSF import as in the Red Book
+/BeginInclude {
+  /b4_Inc_state save def    		% Save state for cleanup
+  /dict_count countdictstack def	% Count objects on dict stack
+  /op_count count 1 sub def		% Count objects on operand stack 
+  userdict begin
+    0 setgray 0 setlinecap
+    1 setlinewidth 0 setlinejoin
+    10 setmiterlimit [ ] 0 setdash newpath
+    gs_languagelevel 1 ne {
+      false setstrokeadjust false setoverprint 
+    } if
+} bind def
+
+/EndInclude {
+  count op_count sub { pos } repeat	% Clean up stacks
+  countdictstack dict_count sub { end } repeat
+  b4_Inc_state restore
+} bind def
+
+/BeginEPSF {
+  BeginInclude
+  /showpage { } def
+} bind def
+
+/EndEPSF {
+  EndInclude
+} bind def
+
+% Page prefeed
+/page_prefeed {         % bool -> -
+  statusdict /prefeed known {
+    statusdict exch /prefeed exch put
+  } {
+    pop
+  } ifelse
+} bind def
+
+/deffont {
+  findfont exch scalefont def
+} bind def
+
+/reencode_font {
+  findfont reencode 2 copy definefont pop def
+} bind def
+
+% Function c-show (str => -)
+% centers text only according to x axis.
+/c-show { 
+  dup stringwidth pop
+  2 div neg 0 rmoveto
+  show
+} bind def
+
+% Function l-show (str => -)
+% prints texts so that it ends at currentpoint
+/l-show {
+  dup stringwidth pop neg 
+  0 
+  rmoveto show
+} bind def
+
+% center-fit show (str w => -)
+% show centered, and scale currentfont so that the width is less than w
+/cfshow {
+  exch dup stringwidth pop
+  % If the title is too big, try to make it smaller
+  3 2 roll 2 copy
+  gt
+  { % if, i.e. too big
+    exch div
+    currentfont exch scalefont setfont
+  } { % ifelse
+    pop pop 
+  }
+  ifelse
+  c-show			% center title
+} bind def
+
+% Return the y size of the current font
+% - => fontsize
+/currentfontsize {
+  currentfont /FontMatrix get 3 get 1000 mul
+} bind def
+
+% reencode the font
+% <encoding-vector> <fontdict> -> <newfontdict>
+/reencode { %def
+  dup length 5 add dict begin
+    { %forall
+      1 index /FID ne 
+      { def }{ pop pop } ifelse
+    } forall
+    /Encoding exch def
+
+    % Use the font's bounding box to determine the ascent, descent,
+    % and overall height; don't forget that these values have to be
+    % transformed using the font's matrix.
+    % We use `load' because sometimes BBox is executable, sometimes not.
+    % Since we need 4 numbers an not an array avoid BBox from being executed
+    /FontBBox load aload pop
+    FontMatrix transform /Ascent exch def pop
+    FontMatrix transform /Descent exch def pop
+    /FontHeight Ascent Descent sub def
+
+    % Define these in case they're not in the FontInfo (also, here
+    % they're easier to get to.
+    /UnderlinePosition 1 def
+    /UnderlineThickness 1 def
+    
+    % Get the underline position and thickness if they're defined.
+    currentdict /FontInfo known {
+      FontInfo
+      
+      dup /UnderlinePosition known {
+	dup /UnderlinePosition get
+	0 exch FontMatrix transform exch pop
+	/UnderlinePosition exch def
+      } if
+      
+      dup /UnderlineThickness known {
+	/UnderlineThickness get
+	0 exch FontMatrix transform exch pop
+	/UnderlineThickness exch def
+      } if
+      
+    } if
+    currentdict 
+  end 
+} bind def
+
+% Function print line number (<string> # -)
+/# {
+  gsave
+    sx cw mul neg 2 div 0 rmoveto
+    f# setfont
+    c-show
+  grestore
+} bind def
+
+% -------- Some routines to enlight plain b/w printings ---------
+
+% Underline
+% width --
+/dounderline {
+  currentpoint
+  gsave
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    0 rlineto
+    stroke
+  grestore
+} bind def
+
+% Underline a string
+% string --
+/dounderlinestring {
+  stringwidth pop
+  dounderline
+} bind def
+
+/UL {
+  /ul exch store
+} bind def
+
+% Draw a box of WIDTH wrt current font
+% width --
+/dobox {
+  currentpoint
+  gsave
+    newpath
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    dup 0 rlineto
+    0 currentfont /FontHeight get currentfontsize mul rlineto
+    neg 0 rlineto
+    closepath
+    stroke
+  grestore
+} bind def
+
+/BX {
+  /bx exch store
+} bind def
+
+% Box a string
+% string --
+/doboxstring {
+  stringwidth pop
+  dobox
+} bind def
+
+%
+% ------------- Color routines ---------------
+%
+/FG /setrgbcolor load def
+
+% Draw the background
+% width --
+/dobackground {
+  currentpoint
+  gsave
+    newpath
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    dup 0 rlineto
+    0 currentfont /FontHeight get currentfontsize mul rlineto
+    neg 0 rlineto
+    closepath
+    bgcolor aload pop setrgbcolor
+    fill
+  grestore
+} bind def
+
+% Draw bg for a string
+% string --
+/dobackgroundstring {
+  stringwidth pop
+  dobackground
+} bind def
+
+
+/BG {
+  dup /bg exch store
+  { mark 4 1 roll ] /bgcolor exch store } if
+} bind def
+
+
+/Show {
+  bg { dup dobackgroundstring } if
+  ul { dup dounderlinestring } if
+  bx { dup doboxstring } if
+  show
+} bind def
+
+% Function T(ab), jumps to the n-th tabulation in the current line
+/T {
+  cw mul x0 add
+  bg { dup currentpoint pop sub dobackground } if
+  ul { dup currentpoint pop sub dounderline } if
+  bx { dup currentpoint pop sub dobox } if
+  y0 moveto
+} bind def
+
+% Function n: move to the next line
+/n {
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+% Function N: show and move to the next line
+/N {
+  Show
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+/S {
+  Show
+} bind def
+
+%%BeginResource: procset a2ps-a2ps-hdr 2.0 2
+%%Copyright: (c) 1988, 89, 90, 91, 92, 93 Miguel Santana
+%%Copyright: (c) 1995, 96, 97, 98 Akim Demaille, Miguel Santana
+% Function title: prints page header.
+% <ct> <rt> <lt> are passed as argument
+/title { 
+  % 1. Draw the background
+  x v get y v get moveto
+  gsave
+    0 th 2 div neg rmoveto 
+    th setlinewidth
+    0.95 setgray
+    pw 0 rlineto stroke
+  grestore
+  % 2. Border it
+  gsave
+    0.7 setlinewidth
+    pw 0 rlineto
+    0 th neg rlineto
+    pw neg 0 rlineto
+    closepath stroke
+  grestore
+  % stk: ct rt lt
+  x v get y v get th sub 1 add moveto
+%%IncludeResource: font Helvetica
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  % 3. The left title
+  gsave
+    dup stringwidth pop fnfs 0.8 mul add exch % leave space took on stack
+    fnfs 0.8 mul hm rmoveto
+    show			% left title
+  grestore
+  exch
+  % stk: ct ltw rt
+  % 4. the right title
+  gsave
+    dup stringwidth pop fnfs 0.8 mul add exch % leave space took on stack
+    dup
+    pw exch stringwidth pop fnfs 0.8 mul add sub
+    hm
+    rmoveto
+    show			% right title
+  grestore
+  % stk: ct ltw rtw
+  % 5. the center title
+  gsave
+    pw 3 1 roll
+    % stk: ct pw ltw rtw
+    3 copy 
+    % Move to the center of the left room
+    sub add 2 div hm rmoveto
+    % What is the available space in here?
+    add sub fnfs 0.8 mul sub fnfs 0.8 mul sub
+    % stk: ct space_left
+%%IncludeResource: font Helvetica-Bold
+  fHelvetica-Bold fnfs scalefont setfont
+    cfshow
+  grestore
+} bind def
+
+% Function border: prints virtual page border
+/border { %def
+  gsave				% print four sides
+    0 setgray
+    x v get y v get moveto
+    0.7 setlinewidth		% of the square
+    pw 0 rlineto
+    0 ph neg rlineto
+    pw neg 0 rlineto
+    closepath stroke
+  grestore
+} bind def
+
+% Function water: prints a water mark in background
+/water { %def
+  gsave
+    scx scy moveto rotate
+%%IncludeResource: font Times-Bold
+  fTimes-Bold 100 scalefont setfont
+    .97 setgray
+    dup stringwidth pop 2 div neg -50 rmoveto
+    show
+  grestore
+} bind def
+
+% Function rhead: prints the right header
+/rhead {  %def
+  lx ly moveto
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  l-show
+} bind def
+
+% Function footer (cf rf lf -> -)
+/footer {
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  dx dy moveto
+  show
+
+  snx sny moveto
+  l-show
+  
+  fnx fny moveto
+  c-show
+} bind def
+%%EndResource
+%%BeginResource: procset a2ps-black+white-Prolog 2.0 1
+
+% Function T(ab), jumps to the n-th tabulation in the current line
+/T {
+  cw mul x0 add y0 moveto
+} bind def
+
+% Function n: move to the next line
+/n { %def
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+% Function N: show and move to the next line
+/N {
+  Show
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+}  bind def
+
+/S {
+  Show
+} bind def
+
+/p {
+  false UL
+  false BX
+  fCourier bfs scalefont setfont
+  Show
+} bind def
+
+/sy {
+  false UL
+  false BX
+  fSymbol bfs scalefont setfont
+  Show
+} bind def
+
+/k {
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/K {
+  false UL
+  false BX
+  fCourier-Bold bfs scalefont setfont
+  Show
+} bind def
+
+/c {
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/C {
+  false UL
+  false BX
+  fCourier-BoldOblique bfs scalefont setfont
+  Show
+} bind def
+
+/l {
+  false UL
+  false BX
+  fCourier-Bold bfs scalefont setfont
+  Show
+} bind def
+
+/L {
+  false UL
+  false BX
+  fCourier-Bold bfs scalefont setfont
+  Show
+} bind def
+
+/str{
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/e{
+  false UL
+  true BX
+  fCourier-BoldOblique bfs scalefont setfont
+  Show
+} bind def
+
+%%EndResource
+%%EndProlog
+%%BeginSetup
+%%IncludeResource: font Courier
+%%IncludeResource: font Courier-Oblique
+%%IncludeResource: font Courier-Bold
+%%IncludeResource: font Symbol
+%%IncludeResource: font Courier-BoldOblique
+%%BeginResource: encoding ISO-8859-1Encoding
+/ISO-8859-1Encoding [
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclam /quotedbl /numbersign /dollar /percent /ampersand /quoteright 
+/parenleft /parenright /asterisk /plus /comma /minus /period /slash 
+/zero /one /two /three /four /five /six /seven 
+/eight /nine /colon /semicolon /less /equal /greater /question 
+/at /A /B /C /D /E /F /G 
+/H /I /J /K /L /M /N /O 
+/P /Q /R /S /T /U /V /W 
+/X /Y /Z /bracketleft /backslash /bracketright /asciicircum /underscore 
+/quoteleft /a /b /c /d /e /f /g 
+/h /i /j /k /l /m /n /o 
+/p /q /r /s /t /u /v /w 
+/x /y /z /braceleft /bar /braceright /asciitilde /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclamdown /cent /sterling /currency /yen /brokenbar /section 
+/dieresis /copyright /ordfeminine /guillemotleft /logicalnot /hyphen /registered /macron 
+/degree /plusminus /twosuperior /threesuperior /acute /mu /paragraph /bullet 
+/cedilla /onesuperior /ordmasculine /guillemotright /onequarter /onehalf /threequarters /questiondown 
+/Agrave /Aacute /Acircumflex /Atilde /Adieresis /Aring /AE /Ccedilla 
+/Egrave /Eacute /Ecircumflex /Edieresis /Igrave /Iacute /Icircumflex /Idieresis 
+/Eth /Ntilde /Ograve /Oacute /Ocircumflex /Otilde /Odieresis /multiply 
+/Oslash /Ugrave /Uacute /Ucircumflex /Udieresis /Yacute /Thorn /germandbls 
+/agrave /aacute /acircumflex /atilde /adieresis /aring /ae /ccedilla 
+/egrave /eacute /ecircumflex /edieresis /igrave /iacute /icircumflex /idieresis 
+/eth /ntilde /ograve /oacute /ocircumflex /otilde /odieresis /divide 
+/oslash /ugrave /uacute /ucircumflex /udieresis /yacute /thorn /ydieresis 
+] def
+%%EndResource
+% Initialize page description variables.
+/sh 595 def
+/sw 842 def
+/llx 24 def
+/urx 818 def
+/ury 571 def
+/lly 24 def
+/#copies 1 def
+/th 15.000000 def
+/fnfs 11 def
+/bfs 6.426693 def
+/cw 3.856016 def
+
+% Dictionary for ISO-8859-1 support
+/iso1dict 7 dict begin
+  /fCourier ISO-8859-1Encoding /Courier reencode_font
+  /fCourier-Bold ISO-8859-1Encoding /Courier-Bold reencode_font
+  /fCourier-BoldOblique ISO-8859-1Encoding /Courier-BoldOblique reencode_font
+  /fCourier-Oblique ISO-8859-1Encoding /Courier-Oblique reencode_font
+  /fHelvetica ISO-8859-1Encoding /Helvetica reencode_font
+  /fHelvetica-Bold ISO-8859-1Encoding /Helvetica-Bold reencode_font
+  /fTimes-Bold ISO-8859-1Encoding /Times-Bold reencode_font
+currentdict end def
+/bgcolor [ 0 0 0 ] def
+/bg false def
+/ul false def
+/bx false def
+% The font for line numbering
+/f# /Helvetica findfont bfs .6 mul scalefont def
+/fSymbol /Symbol findfont def
+/hm fnfs 0.25 mul def
+/pw
+   cw 101.400000 mul
+def
+/ph
+   505.780736 th add
+def
+/pmw urx llx sub pw 2 mul sub 1 div def
+/pmh 0 def
+/v 0 def
+/x [
+  0
+  dup pmw add pw add
+] def
+/y [
+  pmh ph add 0 mul ph add
+  dup
+] def
+/scx sw 2 div def
+/scy sh 2 div def
+/snx urx def
+/sny lly 2 add def
+/dx llx def
+/dy sny def
+/fnx scx def
+/fny dy def
+/lx snx def
+/ly ury fnfs 0.8 mul sub def
+/sx 5 def
+/tab 8 def
+/x0 0 def
+/y0 0 def
+%%EndSetup
+
+%%Page: (1-2) 1
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#include) K
+( <iostream>) p n
+0 T () S
+(#include) K
+( <fstream>) p n
+0 T () N
+0 T () S
+(#include) K
+( ") p
+(iofilter.h) str
+(") p n
+(5) # () N
+0 T () S
+(#pragma) K
+( warning\(push\)) p n
+0 T () S
+(#pragma) K
+( warning\( disable : 4251 4267 4101 4267 \)) p n
+0 T () N
+0 T () S
+(#include) K
+( ") p
+(FjolnirForritLexer.hpp) str
+(") p n
+(10) # () S
+(#include) K
+( ") p
+(FjolnirEiningLexer.hpp) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(FjolnirParser.hpp) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(FjolnirTransformer.hpp) str
+(") p n
+0 T () S
+(#include) K
+( ") p
+(FjolnirCodegen.hpp) str
+(") p n
+0 T () S
+(#include) K
+( <antlr/AST.hpp>) p n
+(15) # () S
+(#include) K
+( <antlr/CommonAST.hpp>) p n
+0 T () S
+(#include) K
+( <antlr/TokenStreamSelector.hpp>) p n
+0 T () S
+(#include) K
+( ") p
+(myast.h) str
+(") p n
+0 T () N
+0 T () S
+(#pragma) K
+( warning\(pop\)) p n
+(20) # () N
+0 T () S
+(int) k
+( main_lex\(std::istream& input, std::ostream& output\);) p n
+0 T () S
+(int) k
+( main_parse\(std::istream& input, std::ostream& output, ) p
+(int) k
+( dotformat\);) p n
+0 T () N
+0 T () S
+(typedef) K
+( ) p
+(enum) k
+( {) p n
+(25) # () S 8 T (MODE_LEX,) N
+0 T () S 8 T (MODE_PARSE,) N
+0 T () S 8 T (MODE_COMPILE) N
+0 T (} runmode;) N
+0 T () N
+(30) # () S
+(#define) K
+( UTGAFA  ") p
+(1.0) str
+(") p n
+0 T () N
+0 T () S
+(void) k
+( useage\(std::ostream& out\) {) p n
+0 T () S 8 T () S
+(using) K
+( ) p
+(namespace) K
+( std;) p n
+0 T () S 8 T (out <<) N
+(35) # () S 8 T () S 16 T (") S
+(Falskur Fj\366lnir, \376\375\360andi - \372tg\341fa ) str
+(" UTGAFA << endl <<) p n
+0 T () S 8 T () S 16 T (") S
+( 2003 \(c\) Arnar Birgisson, H\341sk\363li \315slands) str
+(" << endl <<) p n
+0 T () S 8 T () S 16 T (") S
+( Byggt \341 \376\375\360andanum og forritunarm\341linu Fj\366lni, h\366fundar:) str
+(" << endl <<) p n
+0 T () S 8 T () S 16 T (") S
+(   P\341ll Bj\366rnsson, J\363n Har\360arson, Snorri Agnarsson) str
+(" << endl <<) p n
+0 T () S 8 T () S 16 T (") S
+( Notkun:) str
+(" << endl <<) p n
+(40) # () S 8 T () S 16 T (") S
+(   falskur_fjolnir [-l | -p [-dN]] [-iso] [-n] [-o skr\341] [skr\341]) str
+(" << endl <<) p n
+0 T () S 8 T () S 16 T (") S
+(      -l      framkv\346mir a\360eins lesgreiningu) str
+(" << endl <<) p n
+0 T () S 8 T () S 16 T (") S
+(      -p      framkv\346mir a\360eins \376\341ttun) str
+(" << endl <<) p n
+0 T () S 8 T () S 16 T (") S
+(      -dN     skrifar \372t m\341ltr\351 \341 formi sem nota m\341 sem inntak \355) str
+(" << endl <<) p n
+0 T () S 8 T () S 16 T (") S
+(                forriti\360 \\"dot\\". N er anna\360 hvort 1 e\360a 2, ef 1 er) str
+(" << endl <) p n
+0 T (<) N
+(45) # () S 8 T () S 16 T (") S
+(                skrifa\360 \372t m\341ltr\351 fyrir umbreytingu, annars eftir) str
+(" << endl <<) p n
+0 T () S 8 T () S 16 T (") S
+(      -iso    \372ttak \376\375\360andans er \355 ISO-8859-1, annars CP861) str
+(" << endl <<) p n
+0 T () S 8 T () S 16 T (") S
+(      -n      inntak er lesi\360 sem CP-861, annars ISO-8859-1) str
+(" << endl <<) p n
+0 T () S 8 T () S 16 T (") S
+(      -o skr\341 \372ttak er skrifa\360 \355 skr\341, annars stdout) str
+(" << endl <<) p n
+0 T () S 8 T () S 16 T (") S
+(      skr\341    inntak er lesi\360 \372r skr\341, annars stdin) str
+(" << endl << endl;) p n
+(50) # () S 8 T (exit\(2\);) N
+0 T (}) N
+0 T () N
+0 T (std::ostream* __ff_errors = ) S
+(NULL) K
+(;) p n
+0 T () N
+(55) # () S
+(int) k
+( main\() p
+(int) k
+( argc, ) p
+(char) k
+(** args\)) p n
+0 T ({) N
+0 T () S 8 T () S
+(using) K
+( ) p
+(namespace) K
+( std;) p n
+0 T () S 8 T () S
+(using) K
+( ) p
+(namespace) K
+( antlr;) p n
+0 T () S 8 T () S
+(using) K
+( ) p
+(namespace) K
+( ff;) p n
+(60) # () N
+0 T () S 8 T (runmode mode = MODE_COMPILE;) N
+0 T () S 8 T () S
+(bool) k
+( convert_input = ) p
+(false) k
+(;) p n
+0 T () S 8 T () S
+(bool) k
+( convert_output = ) p
+(true) k
+(;) p n
+0 T () S 8 T () S
+(int) k
+( dot_output = 0;) p n
+(65) # () S 8 T () S
+(char) k
+(* output_filename = ) p
+(NULL) K
+(;) p n
+0 T () S 8 T () S
+(char) k
+(* input_filename = ) p
+(NULL) K
+(;) p n
+0 T () S 8 T (ostream* output;) N
+0 T () S 8 T (istream* input;) N
+0 T () N
+(70) # () S 8 T () S
+(/* Skrifum allt \372ttak \355 861 */) c n
+0 T () S
+() p 8 T (ostream cerr\() S
+(new) K
+( ofilterbuf\(_trans_iso_861, cerr.rdbuf\(\)\)\);) p n
+0 T () S 8 T (__ff_errors = &cerr;) N
+0 T () N
+0 T () S 8 T () S
+(for) K
+( \() p
+(int) k
+( i = 1; i < argc; i++\) {) p n
+(75) # () S 8 T () S 16 T () S
+(char) k
+(* arg = args[i];) p n
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(') p
+(-) str
+(' == arg[0]\) {) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(switch) K
+( \(arg[1]\) {) p n
+(main.cpp) (Page 1/5) (Nov 18, 03 19:37) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () S 16 T () S 24 T () S
+(case) K
+( ') p
+(l) str
+(': ) p
+(case) K
+( ') p
+(L) str
+(':) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (mode = MODE_LEX;) N
+(80) # () S 8 T () S 16 T () S 24 T () S 32 T () S
+(break) K
+(;) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(case) K
+( ') p
+(d) str
+(': ) p
+(case) K
+( ') p
+(D) str
+(':) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(if) K
+( \(') p
+(1) str
+(' == arg[2]\) {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (dot_output = 1;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (} ) S
+(else) K
+( ) p
+(if) K
+( \(') p
+(2) str
+(' == arg[2]\) {) p n
+(85) # () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (dot_output = 2;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (useage\(cerr\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (}) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(/* fall trough */) c n
+(90) # () S
+() p 8 T () S 16 T () S 24 T () S
+(case) K
+( ') p
+(p) str
+(': ) p
+(case) K
+( ') p
+(P) str
+(':) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (mode = MODE_PARSE;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(break) K
+(;) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(case) K
+( ') p
+(i) str
+(': ) p
+(case) K
+( ') p
+(I) str
+(':) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(if) K
+( \(0 == stricmp\(") p
+(-iso) str
+(", arg\)\)) p n
+(95) # () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (convert_output = ) S
+(false) k
+(;) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(break) K
+(;) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(case) K
+( ') p
+(n) str
+(': ) p
+(case) K
+( ') p
+(N) str
+(':) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (convert_input = ) S
+(true) k
+(;) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(break) K
+(;) p n
+(100) # () S 8 T () S 16 T () S 24 T () S
+(case) K
+( ') p
+(o) str
+(': ) p
+(case) K
+( ') p
+(O) str
+(':) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(if) K
+( \(i+1 >= argc || ') p
+(-) str
+(' == args[i+1][0]\)) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (useage\(cerr\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (output_filename = args[++i];) N
+0 T () S 8 T () S 16 T () S 24 T () S
+(case) K
+( ') p
+(?) str
+(': ) p
+(case) K
+( ') p
+(h) str
+(': ) p
+(case) K
+( ') p
+(H) str
+(':) p n
+(105) # () S 8 T () S 16 T () S 24 T () S 32 T (useage\(cerr\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S
+(break) K
+(;) p n
+0 T () S 8 T () S 16 T () S 24 T (}) N
+0 T () S 8 T () S 16 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(input_filename\)) p n
+(110) # () S 8 T () S 16 T () S 24 T () S 32 T (useage\(cerr\);) N
+0 T () S 8 T () S 16 T () S 24 T (input_filename = arg;) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (}) N
+0 T () N
+(115) # () S 8 T () S
+(if) K
+( \(input_filename\) {) p n
+0 T () S 8 T () S 16 T (input = ) S
+(new) K
+( ifstream\(input_filename, ios::in\);) p n
+0 T () S 8 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T (input = &cin;) N
+0 T () S 8 T (}) N
+(120) # () N
+0 T () S 8 T () S
+(if) K
+( \(output_filename\) {) p n
+0 T () S 8 T () S 16 T (output = ) S
+(new) K
+( ofstream\(output_filename, ios::out\);) p n
+0 T () S 8 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T (output = &cout;) N
+(125) # () S 8 T (}) N
+0 T () N
+0 T () S 8 T () S
+(if) K
+( \(convert_input\) {) p n
+0 T () S 8 T () S 16 T (input = ) S
+(new) K
+( istream\() p
+(new) K
+( ifilterbuf\(_trans_861_iso, input->rdbuf\(\)\)\);) p n
+0 T () S 8 T (}) N
+(130) # () N
+0 T () S 8 T () S
+(if) K
+( \(convert_output\) {) p n
+0 T () S 8 T () S 16 T (output = ) S
+(new) K
+( ostream\() p
+(new) K
+( ofilterbuf\(_trans_iso_861, output->rdbuf\(\)\)\);) p n
+0 T () S 8 T (}) N
+0 T () N
+(135) # () S 8 T () S
+(if) K
+( \(MODE_LEX == mode\) {) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( main_lex\(*input, *output\);) p n
+0 T () S 8 T (} ) S
+(else) K
+( ) p
+(if) K
+( \(MODE_PARSE == mode\) {) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( main_parse\(*input, *output, dot_output\);) p n
+0 T () S 8 T (}) N
+(140) # () N
+0 T () S 8 T () S
+(try) K
+( {) p n
+0 T () S 8 T () S 16 T (cerr << ") S
+( Fasi 0: Uppsetning... ) str
+(";) p n
+0 T () N
+0 T () S 8 T () S 16 T (TokenStreamSelector selector;) N
+(145) # () N
+0 T () S 8 T () S 16 T (FjolnirForritLexer forritLexer\(*input\);) N
+0 T () S 8 T () S 16 T (forritLexer.initialize\(&selector\);) N
+0 T () N
+0 T () S 8 T () S 16 T (FjolnirEiningLexer einingLexer\(forritLexer.getInputState\(\)\);) N
+(150) # () S 8 T () S 16 T (einingLexer.initialize\(&selector\);) N
+0 T () N
+0 T () S 8 T () S 16 T (selector.addInputStream\(&forritLexer, ") S
+(forritlexer) str
+("\);) p n
+0 T () S 8 T () S 16 T (selector.addInputStream\(&einingLexer, ") S
+(eininglexer) str
+("\);) p n
+0 T () S 8 T () S 16 T (selector.select\(") S
+(forritlexer) str
+("\);) p n
+(155) # () N
+(main.cpp) (Page 2/5) (Nov 18, 03 19:37) title
+border
+grestore
+(Printed by ) rhead
+(main.cpp) (1/3) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (3-4) 2
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () S 16 T (ASTFactory my_factory\(") S
+(ffAST) str
+(", ffAST::factory\);) p n
+0 T () S 8 T () S 16 T (FjolnirParser parser\(selector\);) N
+0 T () N
+0 T () S 8 T () S 16 T (parser.initializeASTFactory\(my_factory\);) N
+(160) # () S 8 T () S 16 T (parser.setASTFactory\(&my_factory\);) N
+0 T () N
+0 T () S 8 T () S 16 T (cerr << ") S
+(loki\360.) str
+(" << endl;) p n
+0 T () N
+0 T () S 8 T () S 16 T (cerr << ") S
+( Fasi 1: Lesgreining og \376\341ttun... ) str
+(";) p n
+(165) # () S 8 T () S 16 T (parser.forrit\(\);) N
+0 T () S 8 T () S 16 T (RefAST ast = RefAST\(parser.getAST\(\)\);) N
+0 T () S 8 T () S 16 T (cerr << ") S
+(loki\360.) str
+(" << endl;) p n
+0 T () N
+0 T () S 8 T () S 16 T (cerr << ") S
+( Fasi 2: Umbreyting m\341ltr\351s... ) str
+(";) p n
+(170) # () S 8 T () S 16 T (FjolnirTransformer tparser;) N
+0 T () S 8 T () S 16 T (tparser.initializeASTFactory\(my_factory\);) N
+0 T () S 8 T () S 16 T (tparser.setASTFactory\(&my_factory\);) N
+0 T () S 8 T () S 16 T (tparser.forrit\(ast\);) N
+0 T () S 8 T () S 16 T (RefAST transformed = RefAST\(tparser.getAST\(\)\);) N
+(175) # () S 8 T () S 16 T (cerr << ") S
+(loki\360.) str
+(" << endl;) p n
+0 T () N
+0 T () S 8 T () S 16 T (cerr << ") S
+( Fasi 3: \336ulusm\355\360i... ) str
+(";) p n
+0 T () S 8 T () S 16 T (FjolnirCodegen cgparser;) N
+0 T () S 8 T () S 16 T (cgparser.setOutput\(*output\);) N
+(180) # () S 8 T () S 16 T (cgparser.forrit\(transformed\);) N
+0 T () S 8 T () S 16 T (cerr << ") S
+(loki\360.) str
+(" << endl;) p n
+0 T () N
+0 T () S 8 T (} ) S
+(catch) K
+(\(exception& e\) {) p n
+0 T () S 8 T () S 16 T (cerr << ") S
+(Villa \355 \376\375\360ingu: ) str
+(" << e.what\(\) << endl;) p n
+(185) # () S 8 T (}) N
+0 T () N
+0 T () S 8 T () S
+(/* A\360v\366run: H\351r lekum vi\360 hugsanlega minni \355 formi) c n
+0 T () S 8 T (   [io]filterbuf og [io]stream hluta, l\341tum \376a\360 gott heita) N
+0 T () S 8 T (   \376ar e\360 keyrslu l\375kur h\351r eftir.) N
+(190) # () S 8 T (     \336ar sem destructor \355 ofilterbuf er hins vegar aldrei) N
+0 T () S 8 T (   framkv\346mdur reynist okkur nau\360synlegt a\360 framkv\346ma eftir-) N
+0 T () S 8 T (   farandi kall til a\360 skrifa \372t \372ttak \372r honum ef eitthvert er.) N
+0 T () S 8 T (*/) N
+0 T () N
+(195) # () S
+() p 8 T (output->flush\(\);) N
+0 T () N
+0 T (}) N
+0 T () N
+0 T () S
+(int) k
+( main_lex\(std::istream& input, std::ostream& output\) {) p n
+(200) # () S 8 T () S
+(using) K
+( ) p
+(namespace) K
+( std;) p n
+0 T () S 8 T () S
+(using) K
+( ) p
+(namespace) K
+( antlr;) p n
+0 T () S 8 T () S
+(using) K
+( ) p
+(namespace) K
+( ff;) p n
+0 T () N
+0 T () S 8 T (TokenStreamSelector selector;) N
+(205) # () N
+0 T () S 8 T (FjolnirForritLexer forritLexer\(input\);) N
+0 T () S 8 T (forritLexer.initialize\(&selector\);) N
+0 T () N
+0 T () S 8 T (FjolnirEiningLexer einingLexer\(forritLexer.getInputState\(\)\);) N
+(210) # () S 8 T (einingLexer.initialize\(&selector\);) N
+0 T () N
+0 T () S 8 T (selector.addInputStream\(&forritLexer, ") S
+(forritlexer) str
+("\);) p n
+0 T () S 8 T (selector.addInputStream\(&einingLexer, ") S
+(eininglexer) str
+("\);) p n
+0 T () S 8 T (selector.select\(") S
+(forritlexer) str
+("\);) p n
+(215) # () N
+0 T () S 8 T () S
+(/* fyrir t\363k-n\366fn */) c n
+0 T () S
+() p 8 T (FjolnirParser parser\(selector\);) N
+0 T () N
+0 T () S 8 T (RefToken t;) N
+(220) # () S 8 T () S
+(char) k
+( buffer[128];) p n
+0 T () S 8 T () S
+(while) K
+( \( \(t=selector.nextToken\(\)\)->getType\(\)!=Token::EOF_TYPE \) {) p n
+0 T () S 8 T () S 16 T (::_snprintf\(buffer, 128, ") S
+(%-30s <%2d> %s\\n) str
+(", parser.getTokenName\(t->type\), t->t) p n
+0 T (ype, t->getText\(\).c_str\(\)\);) N
+0 T () S 8 T () S 16 T (output << buffer;) N
+0 T () S 8 T (}) N
+(225) # () S 8 T () S
+(return) K
+( 0;) p n
+0 T (}) N
+0 T () N
+0 T () S
+(void) k
+( printTree\(antlr::RefAST tree, std::ostream& out, antlr::Parser& p, ) p
+(int) k
+( indent = 0\);) p n
+0 T () S
+(int) k
+( printDotTree\(antlr::RefAST tree, std::ostream& out, antlr::Parser& p\);) p n
+(230) # () N
+0 T () S
+(int) k
+( main_parse\(std::istream& input, std::ostream& output, ) p
+(int) k
+( dotformat\)) p n
+0 T ({) N
+(main.cpp) (Page 3/5) (Nov 18, 03 19:37) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T () S
+(using) K
+( ) p
+(namespace) K
+( std;) p n
+0 T () S 8 T () S
+(using) K
+( ) p
+(namespace) K
+( antlr;) p n
+(235) # () S 8 T () S
+(using) K
+( ) p
+(namespace) K
+( ff;) p n
+0 T () N
+0 T () S 8 T () S
+(try) K
+( {) p n
+0 T () S 8 T () S 16 T (TokenStreamSelector selector;) N
+0 T () N
+(240) # () S 8 T () S 16 T (FjolnirForritLexer forritLexer\(input\);) N
+0 T () S 8 T () S 16 T (forritLexer.initialize\(&selector\);) N
+0 T () N
+0 T () S 8 T () S 16 T (FjolnirEiningLexer einingLexer\(forritLexer.getInputState\(\)\);) N
+0 T () S 8 T () S 16 T (einingLexer.initialize\(&selector\);) N
+(245) # () N
+0 T () S 8 T () S 16 T (selector.addInputStream\(&forritLexer, ") S
+(forritlexer) str
+("\);) p n
+0 T () S 8 T () S 16 T (selector.addInputStream\(&einingLexer, ") S
+(eininglexer) str
+("\);) p n
+0 T () S 8 T () S 16 T (selector.select\(") S
+(forritlexer) str
+("\);) p n
+0 T () N
+(250) # () S 8 T () S 16 T (ASTFactory my_factory;) N
+0 T () S 8 T () S 16 T (FjolnirParser parser\(selector\);) N
+0 T () N
+0 T () S 8 T () S 16 T (parser.initializeASTFactory\(my_factory\);) N
+0 T () S 8 T () S 16 T (parser.setASTFactory\(&my_factory\);) N
+(255) # () N
+0 T () S 8 T () S 16 T (parser.forrit\(\);) N
+0 T () S 8 T () S 16 T (RefAST ast = RefAST\(parser.getAST\(\)\);) N
+0 T () N
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(1 == dotformat\) {) p n
+(260) # () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(ast\) {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (output << ") S
+(digraph G {) str
+(" << endl;) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (output << ") S
+(edge [fontname=\\"Helvetica\\",fontsize=10,labelfontna) str n
+0 T (me=\\"Helvetica\\",labelfontsize=10];) S
+(" << endl;) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (output << ") S
+(node [fontname=\\"Helvetica\\",fontsize=10,shape=box];) str
+() p n
+0 T (" << endl;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (printDotTree\(ast, output, parser\);) N
+(265) # () S 8 T () S 16 T () S 24 T () S 32 T (output << ") S
+(}) str
+(" << endl;) p n
+0 T () S 8 T () S 16 T () S 24 T (}) N
+0 T () S 8 T () S 16 T (} ) S
+(else) K
+( ) p
+(if) K
+( \(2 != dotformat\) {) p n
+0 T () S 8 T () S 16 T () S 24 T (output << ") S
+(Fyrir umbreytingu:) str
+(" << endl;) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(ast\) {) p n
+(270) # () S 8 T () S 16 T () S 24 T () S 32 T (printTree\(ast, output, parser\);) N
+0 T () S 8 T () S 16 T () S 24 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (output << ") S
+(null AST) str
+(" << endl;) p n
+0 T () S 8 T () S 16 T () S 24 T (}) N
+0 T () S 8 T () S 16 T (}) N
+(275) # () N
+0 T () S 8 T () S 16 T (FjolnirTransformer tparser;) N
+0 T () S 8 T () S 16 T (tparser.initializeASTFactory\(my_factory\);) N
+0 T () S 8 T () S 16 T (tparser.setASTFactory\(&my_factory\);) N
+0 T () S 8 T () S 16 T (tparser.forrit\(ast\);) N
+(280) # () S 8 T () S 16 T (RefAST transformed = RefAST\(tparser.getAST\(\)\);) N
+0 T () N
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(2 == dotformat\) {) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(transformed\) {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (output << ") S
+(digraph G {) str
+(" << endl;) p n
+(285) # () S 8 T () S 16 T () S 24 T () S 32 T (output << ") S
+(edge [fontname=\\"Helvetica\\",fontsize=10,labelfontna) str n
+0 T (me=\\"Helvetica\\",labelfontsize=10];) S
+(" << endl;) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (output << ") S
+(node [fontname=\\"Helvetica\\",fontsize=10,shape=box];) str
+() p n
+0 T (" << endl;) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (printDotTree\(transformed, output, parser\);) N
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (output << ") S
+(}) str
+(" << endl;) p n
+0 T () S 8 T () S 16 T () S 24 T (}) N
+(290) # () S 8 T () S 16 T (} ) S
+(else) K
+( ) p
+(if) K
+( \(1 != dotformat\) {) p n
+0 T () S 8 T () S 16 T () S 24 T (output << ") S
+(Eftir umbreytingu:) str
+(" << endl;) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(if) K
+( \(transformed\) {) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T (printTree\(ast, output, parser\);) N
+0 T () S 8 T () S 16 T () S 24 T (} ) S
+(else) K
+( {) p n
+(295) # () S 8 T () S 16 T () S 24 T () S 32 T (output << ") S
+(null AST) str
+(" << endl;) p n
+0 T () S 8 T () S 16 T () S 24 T (}) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (} ) S
+(catch) K
+(\(exception& e\) {) p n
+0 T () S 8 T () S 16 T (output << ") S
+(Villa \355 \376\341ttun: ) str
+(" << e.what\(\) << endl;) p n
+(300) # () S 8 T (}) N
+0 T () N
+0 T () S 8 T () S
+(return) K
+( 0;) p n
+0 T (}) N
+0 T () N
+(305) # () S
+(void) k
+( printTree\(antlr::RefAST tree, std::ostream& out, antlr::Parser& p, ) p
+(int) k
+( indent\) {) p n
+0 T () S 8 T () S
+(int) k
+( j = indent;) p n
+(main.cpp) (Page 4/5) (Nov 18, 03 19:37) title
+border
+grestore
+(Printed by ) rhead
+(main.cpp) (2/3) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (5) 3
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T () p 8 T (std::string i = ""; ) S
+(while) K
+( \(j-- > 0\) i += ") p
+(  ) str
+(";) p n
+0 T () S 8 T () S
+(if) K
+( \(tree->getFirstChild\(\)\) {) p n
+0 T () S 8 T () S 16 T (out << i << ") S
+(\( ) str
+(" << tree->toString\(\) << ") p
+( <) str
+(" <<) p n
+(310) # () S 8 T () S 16 T () S 24 T (p.getTokenName\(tree->getType\(\)\) << ") S
+(>) str
+(" << std::endl;) p n
+0 T () S 8 T () S 16 T (printTree\(tree->getFirstChild\(\), out, p, indent+1\);) N
+0 T () S 8 T () S 16 T (out << i << ") S
+(\)) str
+(" << std::endl;) p n
+0 T () S 8 T (} ) S
+(else) K
+( {) p n
+0 T () S 8 T () S 16 T (out << i << tree->toString\(\) << ") S
+( <) str
+(" << ) p n
+(315) # () S 8 T () S 16 T () S 24 T (p.getTokenName\(tree->getType\(\)\) << ") S
+(>) str
+(" << std::endl;) p n
+0 T () S 8 T (}) N
+0 T () S 8 T () S
+(if) K
+( \(tree->getNextSibling\(\)\) {) p n
+0 T () S 8 T () S 16 T (printTree\(tree->getNextSibling\(\), out, p, indent\);) N
+0 T () S 8 T (}) N
+(320) # (}) N
+0 T () N
+0 T () S
+(static) K
+( ) p
+(int) k
+( _dot_node = 0;) p n
+0 T () S
+(int) k
+( printDotTree\(antlr::RefAST tree, std::ostream& out, antlr::Parser& p\) {) p n
+0 T () S 8 T () S
+(int) k
+( me = ++_dot_node;) p n
+(325) # () S 8 T (out << me << ") S
+( [label=\\") str
+(" << p.getTokenName\(tree->getType\(\)\)) p n
+0 T () S 8 T () S 16 T (<< ") S
+(\\\\n) str
+(" << tree->getText\(\) << ") p
+(\\"];) str
+(" << std::endl;) p n
+0 T () S 8 T (antlr::RefAST c = tree->getFirstChild\(\);) N
+0 T () S 8 T () S
+(while) K
+( \(antlr::nullAST != c\) {) p n
+0 T () S 8 T () S 16 T () S
+(int) k
+( child = printDotTree\(c, out, p\);) p n
+(330) # () S 8 T () S 16 T (out << me << ") S
+( -> ) str
+(" << child << ") p
+(;) str
+(" << std::endl;) p n
+0 T () S 8 T () S 16 T (c = c->getNextSibling\(\);) N
+0 T () S 8 T (}) N
+0 T () S 8 T () S
+(return) K
+( me;) p n
+0 T (}) S
+(main.cpp) (Page 5/5) (Nov 18, 03 19:37) title
+border
+grestore
+(Printed by ) rhead
+(main.cpp) (3/3) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+
+%%Trailer
+end
+%%EOF

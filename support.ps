@@ -1,0 +1,1334 @@
+%!PS-Adobe-3.0
+%%Title: iofilter.h, translate.cpp, MyAST.h, utils.h, utils.cpp
+%%For: 
+%%Creator: a2ps version 4.13
+%%CreationDate: Tue Nov 18 19:49:54 2003
+%%BoundingBox: 24 24 571 818
+%%DocumentData: Clean7Bit
+%%Orientation: Landscape
+%%Pages: 3
+%%PageOrder: Ascend
+%%DocumentMedia: A4 595 842 0 () ()
+%%DocumentNeededResources: font Courier
+%%+ font Courier-Bold
+%%+ font Courier-BoldOblique
+%%+ font Courier-Oblique
+%%+ font Helvetica
+%%+ font Helvetica-Bold
+%%+ font Symbol
+%%+ font Times-Bold
+%%DocumentProcessColors: Black 
+%%DocumentSuppliedResources: procset a2ps-a2ps-hdr
+%%+ procset a2ps-black+white-Prolog
+%%+ encoding ISO-8859-1Encoding
+%%EndComments
+/a2psdict 200 dict def
+a2psdict begin
+%%BeginProlog
+%%Copyright: (c) 1988, 89, 90, 91, 92, 93 Miguel Santana
+%%Copyright: (c) 1995, 96, 97, 98 Akim Demaille, Miguel Santana
+% Check PostScript language level.
+/languagelevel where {
+  pop /gs_languagelevel languagelevel def
+} {
+  /gs_languagelevel 1 def
+} ifelse
+
+% EPSF import as in the Red Book
+/BeginInclude {
+  /b4_Inc_state save def    		% Save state for cleanup
+  /dict_count countdictstack def	% Count objects on dict stack
+  /op_count count 1 sub def		% Count objects on operand stack 
+  userdict begin
+    0 setgray 0 setlinecap
+    1 setlinewidth 0 setlinejoin
+    10 setmiterlimit [ ] 0 setdash newpath
+    gs_languagelevel 1 ne {
+      false setstrokeadjust false setoverprint 
+    } if
+} bind def
+
+/EndInclude {
+  count op_count sub { pos } repeat	% Clean up stacks
+  countdictstack dict_count sub { end } repeat
+  b4_Inc_state restore
+} bind def
+
+/BeginEPSF {
+  BeginInclude
+  /showpage { } def
+} bind def
+
+/EndEPSF {
+  EndInclude
+} bind def
+
+% Page prefeed
+/page_prefeed {         % bool -> -
+  statusdict /prefeed known {
+    statusdict exch /prefeed exch put
+  } {
+    pop
+  } ifelse
+} bind def
+
+/deffont {
+  findfont exch scalefont def
+} bind def
+
+/reencode_font {
+  findfont reencode 2 copy definefont pop def
+} bind def
+
+% Function c-show (str => -)
+% centers text only according to x axis.
+/c-show { 
+  dup stringwidth pop
+  2 div neg 0 rmoveto
+  show
+} bind def
+
+% Function l-show (str => -)
+% prints texts so that it ends at currentpoint
+/l-show {
+  dup stringwidth pop neg 
+  0 
+  rmoveto show
+} bind def
+
+% center-fit show (str w => -)
+% show centered, and scale currentfont so that the width is less than w
+/cfshow {
+  exch dup stringwidth pop
+  % If the title is too big, try to make it smaller
+  3 2 roll 2 copy
+  gt
+  { % if, i.e. too big
+    exch div
+    currentfont exch scalefont setfont
+  } { % ifelse
+    pop pop 
+  }
+  ifelse
+  c-show			% center title
+} bind def
+
+% Return the y size of the current font
+% - => fontsize
+/currentfontsize {
+  currentfont /FontMatrix get 3 get 1000 mul
+} bind def
+
+% reencode the font
+% <encoding-vector> <fontdict> -> <newfontdict>
+/reencode { %def
+  dup length 5 add dict begin
+    { %forall
+      1 index /FID ne 
+      { def }{ pop pop } ifelse
+    } forall
+    /Encoding exch def
+
+    % Use the font's bounding box to determine the ascent, descent,
+    % and overall height; don't forget that these values have to be
+    % transformed using the font's matrix.
+    % We use `load' because sometimes BBox is executable, sometimes not.
+    % Since we need 4 numbers an not an array avoid BBox from being executed
+    /FontBBox load aload pop
+    FontMatrix transform /Ascent exch def pop
+    FontMatrix transform /Descent exch def pop
+    /FontHeight Ascent Descent sub def
+
+    % Define these in case they're not in the FontInfo (also, here
+    % they're easier to get to.
+    /UnderlinePosition 1 def
+    /UnderlineThickness 1 def
+    
+    % Get the underline position and thickness if they're defined.
+    currentdict /FontInfo known {
+      FontInfo
+      
+      dup /UnderlinePosition known {
+	dup /UnderlinePosition get
+	0 exch FontMatrix transform exch pop
+	/UnderlinePosition exch def
+      } if
+      
+      dup /UnderlineThickness known {
+	/UnderlineThickness get
+	0 exch FontMatrix transform exch pop
+	/UnderlineThickness exch def
+      } if
+      
+    } if
+    currentdict 
+  end 
+} bind def
+
+% Function print line number (<string> # -)
+/# {
+  gsave
+    sx cw mul neg 2 div 0 rmoveto
+    f# setfont
+    c-show
+  grestore
+} bind def
+
+% -------- Some routines to enlight plain b/w printings ---------
+
+% Underline
+% width --
+/dounderline {
+  currentpoint
+  gsave
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    0 rlineto
+    stroke
+  grestore
+} bind def
+
+% Underline a string
+% string --
+/dounderlinestring {
+  stringwidth pop
+  dounderline
+} bind def
+
+/UL {
+  /ul exch store
+} bind def
+
+% Draw a box of WIDTH wrt current font
+% width --
+/dobox {
+  currentpoint
+  gsave
+    newpath
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    dup 0 rlineto
+    0 currentfont /FontHeight get currentfontsize mul rlineto
+    neg 0 rlineto
+    closepath
+    stroke
+  grestore
+} bind def
+
+/BX {
+  /bx exch store
+} bind def
+
+% Box a string
+% string --
+/doboxstring {
+  stringwidth pop
+  dobox
+} bind def
+
+%
+% ------------- Color routines ---------------
+%
+/FG /setrgbcolor load def
+
+% Draw the background
+% width --
+/dobackground {
+  currentpoint
+  gsave
+    newpath
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    dup 0 rlineto
+    0 currentfont /FontHeight get currentfontsize mul rlineto
+    neg 0 rlineto
+    closepath
+    bgcolor aload pop setrgbcolor
+    fill
+  grestore
+} bind def
+
+% Draw bg for a string
+% string --
+/dobackgroundstring {
+  stringwidth pop
+  dobackground
+} bind def
+
+
+/BG {
+  dup /bg exch store
+  { mark 4 1 roll ] /bgcolor exch store } if
+} bind def
+
+
+/Show {
+  bg { dup dobackgroundstring } if
+  ul { dup dounderlinestring } if
+  bx { dup doboxstring } if
+  show
+} bind def
+
+% Function T(ab), jumps to the n-th tabulation in the current line
+/T {
+  cw mul x0 add
+  bg { dup currentpoint pop sub dobackground } if
+  ul { dup currentpoint pop sub dounderline } if
+  bx { dup currentpoint pop sub dobox } if
+  y0 moveto
+} bind def
+
+% Function n: move to the next line
+/n {
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+% Function N: show and move to the next line
+/N {
+  Show
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+/S {
+  Show
+} bind def
+
+%%BeginResource: procset a2ps-a2ps-hdr 2.0 2
+%%Copyright: (c) 1988, 89, 90, 91, 92, 93 Miguel Santana
+%%Copyright: (c) 1995, 96, 97, 98 Akim Demaille, Miguel Santana
+% Function title: prints page header.
+% <ct> <rt> <lt> are passed as argument
+/title { 
+  % 1. Draw the background
+  x v get y v get moveto
+  gsave
+    0 th 2 div neg rmoveto 
+    th setlinewidth
+    0.95 setgray
+    pw 0 rlineto stroke
+  grestore
+  % 2. Border it
+  gsave
+    0.7 setlinewidth
+    pw 0 rlineto
+    0 th neg rlineto
+    pw neg 0 rlineto
+    closepath stroke
+  grestore
+  % stk: ct rt lt
+  x v get y v get th sub 1 add moveto
+%%IncludeResource: font Helvetica
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  % 3. The left title
+  gsave
+    dup stringwidth pop fnfs 0.8 mul add exch % leave space took on stack
+    fnfs 0.8 mul hm rmoveto
+    show			% left title
+  grestore
+  exch
+  % stk: ct ltw rt
+  % 4. the right title
+  gsave
+    dup stringwidth pop fnfs 0.8 mul add exch % leave space took on stack
+    dup
+    pw exch stringwidth pop fnfs 0.8 mul add sub
+    hm
+    rmoveto
+    show			% right title
+  grestore
+  % stk: ct ltw rtw
+  % 5. the center title
+  gsave
+    pw 3 1 roll
+    % stk: ct pw ltw rtw
+    3 copy 
+    % Move to the center of the left room
+    sub add 2 div hm rmoveto
+    % What is the available space in here?
+    add sub fnfs 0.8 mul sub fnfs 0.8 mul sub
+    % stk: ct space_left
+%%IncludeResource: font Helvetica-Bold
+  fHelvetica-Bold fnfs scalefont setfont
+    cfshow
+  grestore
+} bind def
+
+% Function border: prints virtual page border
+/border { %def
+  gsave				% print four sides
+    0 setgray
+    x v get y v get moveto
+    0.7 setlinewidth		% of the square
+    pw 0 rlineto
+    0 ph neg rlineto
+    pw neg 0 rlineto
+    closepath stroke
+  grestore
+} bind def
+
+% Function water: prints a water mark in background
+/water { %def
+  gsave
+    scx scy moveto rotate
+%%IncludeResource: font Times-Bold
+  fTimes-Bold 100 scalefont setfont
+    .97 setgray
+    dup stringwidth pop 2 div neg -50 rmoveto
+    show
+  grestore
+} bind def
+
+% Function rhead: prints the right header
+/rhead {  %def
+  lx ly moveto
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  l-show
+} bind def
+
+% Function footer (cf rf lf -> -)
+/footer {
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  dx dy moveto
+  show
+
+  snx sny moveto
+  l-show
+  
+  fnx fny moveto
+  c-show
+} bind def
+%%EndResource
+%%BeginResource: procset a2ps-black+white-Prolog 2.0 1
+
+% Function T(ab), jumps to the n-th tabulation in the current line
+/T {
+  cw mul x0 add y0 moveto
+} bind def
+
+% Function n: move to the next line
+/n { %def
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+% Function N: show and move to the next line
+/N {
+  Show
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+}  bind def
+
+/S {
+  Show
+} bind def
+
+/p {
+  false UL
+  false BX
+  fCourier bfs scalefont setfont
+  Show
+} bind def
+
+/sy {
+  false UL
+  false BX
+  fSymbol bfs scalefont setfont
+  Show
+} bind def
+
+/k {
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/K {
+  false UL
+  false BX
+  fCourier-Bold bfs scalefont setfont
+  Show
+} bind def
+
+/c {
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/C {
+  false UL
+  false BX
+  fCourier-BoldOblique bfs scalefont setfont
+  Show
+} bind def
+
+/l {
+  false UL
+  false BX
+  fCourier-Bold bfs scalefont setfont
+  Show
+} bind def
+
+/L {
+  false UL
+  false BX
+  fCourier-Bold bfs scalefont setfont
+  Show
+} bind def
+
+/str{
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/e{
+  false UL
+  true BX
+  fCourier-BoldOblique bfs scalefont setfont
+  Show
+} bind def
+
+%%EndResource
+%%EndProlog
+%%BeginSetup
+%%IncludeResource: font Courier
+%%IncludeResource: font Courier-Oblique
+%%IncludeResource: font Courier-Bold
+%%IncludeResource: font Symbol
+%%IncludeResource: font Courier-BoldOblique
+%%BeginResource: encoding ISO-8859-1Encoding
+/ISO-8859-1Encoding [
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclam /quotedbl /numbersign /dollar /percent /ampersand /quoteright 
+/parenleft /parenright /asterisk /plus /comma /minus /period /slash 
+/zero /one /two /three /four /five /six /seven 
+/eight /nine /colon /semicolon /less /equal /greater /question 
+/at /A /B /C /D /E /F /G 
+/H /I /J /K /L /M /N /O 
+/P /Q /R /S /T /U /V /W 
+/X /Y /Z /bracketleft /backslash /bracketright /asciicircum /underscore 
+/quoteleft /a /b /c /d /e /f /g 
+/h /i /j /k /l /m /n /o 
+/p /q /r /s /t /u /v /w 
+/x /y /z /braceleft /bar /braceright /asciitilde /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclamdown /cent /sterling /currency /yen /brokenbar /section 
+/dieresis /copyright /ordfeminine /guillemotleft /logicalnot /hyphen /registered /macron 
+/degree /plusminus /twosuperior /threesuperior /acute /mu /paragraph /bullet 
+/cedilla /onesuperior /ordmasculine /guillemotright /onequarter /onehalf /threequarters /questiondown 
+/Agrave /Aacute /Acircumflex /Atilde /Adieresis /Aring /AE /Ccedilla 
+/Egrave /Eacute /Ecircumflex /Edieresis /Igrave /Iacute /Icircumflex /Idieresis 
+/Eth /Ntilde /Ograve /Oacute /Ocircumflex /Otilde /Odieresis /multiply 
+/Oslash /Ugrave /Uacute /Ucircumflex /Udieresis /Yacute /Thorn /germandbls 
+/agrave /aacute /acircumflex /atilde /adieresis /aring /ae /ccedilla 
+/egrave /eacute /ecircumflex /edieresis /igrave /iacute /icircumflex /idieresis 
+/eth /ntilde /ograve /oacute /ocircumflex /otilde /odieresis /divide 
+/oslash /ugrave /uacute /ucircumflex /udieresis /yacute /thorn /ydieresis 
+] def
+%%EndResource
+% Initialize page description variables.
+/sh 595 def
+/sw 842 def
+/llx 24 def
+/urx 818 def
+/ury 571 def
+/lly 24 def
+/#copies 1 def
+/th 15.000000 def
+/fnfs 11 def
+/bfs 6.426693 def
+/cw 3.856016 def
+
+% Dictionary for ISO-8859-1 support
+/iso1dict 7 dict begin
+  /fCourier ISO-8859-1Encoding /Courier reencode_font
+  /fCourier-Bold ISO-8859-1Encoding /Courier-Bold reencode_font
+  /fCourier-BoldOblique ISO-8859-1Encoding /Courier-BoldOblique reencode_font
+  /fCourier-Oblique ISO-8859-1Encoding /Courier-Oblique reencode_font
+  /fHelvetica ISO-8859-1Encoding /Helvetica reencode_font
+  /fHelvetica-Bold ISO-8859-1Encoding /Helvetica-Bold reencode_font
+  /fTimes-Bold ISO-8859-1Encoding /Times-Bold reencode_font
+currentdict end def
+/bgcolor [ 0 0 0 ] def
+/bg false def
+/ul false def
+/bx false def
+% The font for line numbering
+/f# /Helvetica findfont bfs .6 mul scalefont def
+/fSymbol /Symbol findfont def
+/hm fnfs 0.25 mul def
+/pw
+   cw 101.400000 mul
+def
+/ph
+   505.780736 th add
+def
+/pmw urx llx sub pw 2 mul sub 1 div def
+/pmh 0 def
+/v 0 def
+/x [
+  0
+  dup pmw add pw add
+] def
+/y [
+  pmh ph add 0 mul ph add
+  dup
+] def
+/scx sw 2 div def
+/scy sh 2 div def
+/snx urx def
+/sny lly 2 add def
+/dx llx def
+/dy sny def
+/fnx scx def
+/fny dy def
+/lx snx def
+/ly ury fnfs 0.8 mul sub def
+/sx 5 def
+/tab 8 def
+/x0 0 def
+/y0 0 def
+%%EndSetup
+
+%%Page: (1,1) 1
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#ifndef) K
+( __iofilter_h__) p n
+0 T () S
+(#define) K
+( __iofilter_h__) p n
+0 T () N
+0 T () S
+(/* \315 \376essari skr\341 eru skilgreindir streambuf erfingjar) c n
+(5) # (   sem nota m\341 til a\360 umbreyta straumum milli stafasetta) N
+0 T (   me\360 umbreytingart\366flum */) N
+0 T () N
+0 T () S
+(#include) K
+( <iostream>) p n
+0 T () S
+(#include) K
+( <sstream>) p n
+(10) # () N
+0 T (namespace ff {) N
+0 T () N
+0 T () S
+(extern) K
+( ) p
+(const) K
+( ) p
+(char) k
+(* _trans_861_iso;) p n
+0 T () S
+(extern) K
+( ) p
+(const) K
+( ) p
+(char) k
+(* _trans_iso_861;) p n
+(15) # () N
+0 T () S
+(inline) K
+( ) p
+(unsigned) k
+( ) p
+(char) k
+( translate\() p
+(unsigned) k
+( ) p
+(char) k
+( c, ) p
+(const) K
+( ) p
+(char) k
+(* table\) {) p n
+0 T () S 8 T () S
+(if) K
+( \(c < 128\) ) p
+(return) K
+( c;) p n
+0 T () S 8 T () S
+(return) K
+( table[c-128];) p n
+0 T (}) N
+(20) # () N
+0 T () S
+(inline) K
+( ) p
+(void) k
+( translatebuffer\() p
+(char) k
+(* buf, size_t n, ) p
+(const) K
+( ) p
+(char) k
+(* table\) {) p n
+0 T () S 8 T () S
+(for) K
+( \(size_t i = 0; i < n; i++\) {) p n
+0 T () S 8 T () S 16 T () S
+(unsigned) k
+( ) p
+(char) k
+( c = buf[i];) p n
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(c < 128\) ) p
+(continue) K
+(;) p n
+(25) # () S 8 T () S 16 T (buf[i] = table[c-128];) N
+0 T () S 8 T (}) N
+0 T (}) N
+0 T () N
+0 T (class ofilterbuf : public std::streambuf {) N
+(30) # () S 8 T () S
+(const) K
+( ) p
+(char) k
+(* _table;) p n
+0 T () S 8 T (std::streambuf* _dst;) N
+0 T () S 8 T () S
+(char) k
+(* _buffer;) p n
+0 T (public:) N
+0 T () S 8 T (ofilterbuf\() S
+(const) K
+( ) p
+(char) k
+(* table, std::streambuf* dst, ) p
+(int) k
+( buflen = 512\) ) p n
+(35) # () S 8 T () S 16 T (: _table\(table\), _dst\(dst\) {) N
+0 T () S 8 T () S 16 T () S 24 T (_buffer = new ) S
+(char) k
+([buflen];) p n
+0 T () S 8 T () S 16 T () S 24 T (setp\(_buffer, _buffer+buflen\);) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (virtual ~ofilterbuf\(\) {) N
+(40) # () S 8 T () S 16 T (sync\(\);) N
+0 T () S 8 T () S 16 T (delete [] _buffer;) N
+0 T () S 8 T (}) N
+0 T () N
+0 T () S 8 T (virtual ) S
+(int) k
+( sync\(\);) p n
+(45) # () S 8 T (virtual ) S
+(int) k
+( overflow\() p
+(int) k
+( ch\);) p n
+0 T (};) N
+0 T () N
+0 T (class ifilterbuf : public std::streambuf {) N
+0 T () S 8 T (std::streambuf* _src;) N
+(50) # () S 8 T () S
+(const) K
+( ) p
+(char) k
+(* _table;) p n
+0 T () S 8 T () S
+(char) k
+(* _buffer;) p n
+0 T () S 8 T (size_t _buflen;) N
+0 T (public:) N
+0 T () S 8 T (ifilterbuf\() S
+(const) K
+( ) p
+(char) k
+(* table, std::streambuf* src, ) p
+(int) k
+( buflen = 512\) ) p n
+(55) # () S 8 T () S 16 T (: _table\(table\), _src\(src\), _buflen\(buflen\) {) N
+0 T () S 8 T () S 16 T () S 24 T (_buffer = new ) S
+(char) k
+([_buflen];) p n
+0 T () S 8 T () S 16 T () S 24 T (setg\(_buffer, _buffer+_buflen, _buffer+_buflen\);) N
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T () S 16 T (virtual ~ifilterbuf\(\) { delete [] _buffer; }) N
+(60) # () N
+0 T () S 8 T (virtual ) S
+(int) k
+( underflow\(\);) p n
+0 T (};) N
+0 T () N
+0 T (}) N
+(65) # () N
+0 T () S
+(#endif) K
+( ) p
+(/* __iofilter_h__ */) c
+(iofilter.h) (Page 1/1) (Nov 18, 03 19:39) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#include) K
+( ") p
+(iofilter.h) str
+(") p n
+0 T () N
+0 T () S
+(using) K
+( ) p
+(namespace) K
+( ff;) p n
+0 T () S
+(using) K
+( ) p
+(namespace) K
+( std;) p n
+(5) # () N
+0 T () S
+(/* translate strengir byrjar \341 staf 128, stafir) c n
+0 T (   sem ekki finnast \355 target stafasetti eru settir sem) N
+0 T (   stafurinn \\137 \('_'\) */) N
+0 T () N
+(10) # () S
+(const) K
+( ) p
+(char) k
+(* ff::_trans_861_iso =) p n
+0 T () S 8 T (") S
+(\\307\\374\\351\\342\\344\\340\\345\\347\\352\\353\\350\\320\\360\\336\\304) str
+(") p n
+0 T () S 8 T (") S
+(\\305\\311\\346\\306\\364\\366\\376\\373\\335\\375\\326\\334\\370\\243\\330) str
+(") p n
+0 T () S 8 T (") S
+(\\137\\137\\341\\355\\363\\372\\301\\315\\323\\332\\277\\137\\254\\275\\274) str
+(") p n
+0 T () S 8 T (") S
+(\\241\\253\\273\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137) str
+(") p n
+(15) # () S 8 T (") S
+(\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137) str
+(") p n
+0 T () S 8 T (") S
+(\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137) str
+(") p n
+0 T () S 8 T (") S
+(\\137\\137\\137\\137\\137\\137\\137\\337\\137\\137\\137\\137\\265\\137\\137) str
+(") p n
+0 T () S 8 T (") S
+(\\137\\137\\137\\137\\137\\137\\137\\137\\261\\137\\137\\137\\137\\367\\137) str
+(") p n
+0 T () S 8 T (") S
+(\\260\\137\\267\\137\\137\\262\\137\\240) str
+(") p n
+(20) # (;) N
+0 T () N
+0 T () S
+(const) K
+( ) p
+(char) k
+(* ff::_trans_iso_861 =) p n
+0 T () S 8 T (") S
+(\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137) str
+(") p n
+0 T () S 8 T (") S
+(\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137\\137) str
+(") p n
+(25) # () S 8 T (") S
+(\\137\\137\\377\\255\\255\\234\\234\\234\\234\\234\\234\\234\\234\\256\\252) str
+(") p n
+0 T () S 8 T (") S
+(\\252\\252\\252\\370\\361\\375\\375\\375\\346\\346\\372\\372\\372\\372\\257) str
+(") p n
+0 T () S 8 T (") S
+(\\254\\253\\253\\250\\250\\244\\244\\244\\216\\217\\222\\200\\200\\220\\220) str
+(") p n
+0 T () S 8 T (") S
+(\\220\\220\\245\\245\\245\\213\\213\\213\\246\\246\\246\\231\\231\\235\\235) str
+(") p n
+0 T () S 8 T (") S
+(\\247\\247\\232\\227\\215\\341\\205\\240\\203\\203\\204\\206\\221\\207\\212) str
+(") p n
+(30) # () S 8 T (") S
+(\\202\\210\\211\\211\\241\\241\\241\\214\\214\\214\\242\\223\\223\\224\\366) str
+(") p n
+0 T () S 8 T (") S
+(\\233\\233\\243\\226\\201\\230\\225\\225) str
+(") p n
+0 T (;) N
+0 T () N
+0 T () S
+(int) k
+( ofilterbuf::sync\(\) {) p n
+(35) # () S 8 T (streamsize n = pptr\(\) - pbase\(\);) N
+0 T () S 8 T () S
+(if) K
+( \(0 == n\) ) p
+(return) K
+( 0;) p n
+0 T () S 8 T (translatebuffer\(pbase\(\), n, _table\);) N
+0 T () S 8 T () S
+(if) K
+( \(n != _dst->sputn\(pbase\(\), n\)\) {) p n
+0 T () S 8 T () S 16 T (cerr << ") S
+(M\363tt\366kustraumur \355 ofilterbuf gat ekki teki\360 vi\360 \366llu.) str
+(" << endl;) p n
+(40) # () S 8 T () S 16 T () S
+(return) K
+( EOF;) p n
+0 T () S 8 T (}) N
+0 T () S 8 T (pbump\(-n\);) N
+0 T () S 8 T () S
+(return) K
+( 0;) p n
+0 T (}) N
+(45) # () N
+0 T () S
+(int) k
+( ofilterbuf::overflow\() p
+(int) k
+( ch\) {) p n
+0 T () S 8 T (streamsize n = pptr\(\) - pbase\(\);) N
+0 T () S 8 T () S
+(if) K
+( \(n && sync\(\)\)) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( EOF;) p n
+(50) # () S 8 T () S
+(if) K
+( \(ch != EOF\) {) p n
+0 T () S 8 T () S 16 T (_dst->sputc\(translate\(ch, _table\)\);) N
+0 T () S 8 T (}) N
+0 T () S 8 T () S
+(return) K
+( 0;) p n
+0 T (}) N
+(55) # () N
+0 T () S
+(int) k
+( ifilterbuf::underflow\(\) {) p n
+0 T () S 8 T () S
+(if) K
+( \(gptr\(\) < egptr\(\)\)) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( *gptr\(\);) p n
+0 T () S 8 T (streamsize read = _src->sgetn\(eback\(\), _buflen\);) N
+(60) # () S 8 T () S
+(if) K
+( \(0 == read && EOF == _src->sgetc\(\)\) {) p n
+0 T () S 8 T () S 16 T () S
+(return) K
+( EOF;) p n
+0 T () S 8 T (}) N
+0 T () S 8 T (translatebuffer\(eback\(\), read, _table\);) N
+0 T () S 8 T (setg\(eback\(\), eback\(\), eback\(\)+read\);) N
+(65) # () S 8 T () S
+(return) K
+( *gptr\(\);) p n
+0 T (}) S
+(translate.cpp) (Page 1/1) (Nov 18, 03 18:53) title
+border
+grestore
+(Printed by ) rhead
+(iofilter.h, translate.cpp) (1/3) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1,1) 2
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#ifndef) K
+( __myast_h__) p n
+0 T () S
+(#define) K
+( __myast_h__) p n
+0 T () N
+0 T () S
+(#include) K
+( <antlr/CommonAST.hpp>) p n
+(5) # () N
+0 T (namespace ff {) N
+0 T () N
+0 T (class ffAST;) N
+0 T () S
+(typedef) K
+( antlr::ASTRefCount<ffAST> RefffAST;) p n
+(10) # () N
+0 T () S
+(/* ffAST er klasi sem nota m\341 sem AST hn\372t \355 ANTLR trj\341smi\360.) c n
+0 T (   Hann s\351r sj\341lfur um a\360 halda utan um \372r hva\360a l\355nu inntaksins) N
+0 T (   hann var sm\355\360a\360ur. */) N
+0 T () N
+(15) # () S
+(class ffAST : public antlr::CommonAST {) p n
+0 T (private:) N
+0 T (    ) S
+(int) k
+( _line;) p n
+0 T (public:) N
+0 T () S 8 T (ffAST\(\) : _line\(0\) {}) N
+(20) # () S 8 T (virtual ~ffAST\(\) {}) N
+0 T () N
+0 T (    ) S
+(int) k
+( getLine\(\) ) p
+(const) K n
+0 T () S
+() p 8 T ({) N
+0 T () S 8 T () S 16 T () S
+(return) K
+( _line;) p n
+(25) # () S 8 T (}) N
+0 T () N
+0 T () S 8 T () S
+(void) k
+( initialize\(antlr::RefToken t\)) p n
+0 T () S 8 T ({) N
+0 T () S 8 T () S 16 T (antlr::CommonAST::initialize\(t\);) N
+(30) # () S 8 T () S 16 T (_line = t->getLine\(\);) N
+0 T () S 8 T (}) N
+0 T () N
+0 T () S 8 T () S
+(void) k
+( initialize\(antlr::RefAST t\)) p n
+0 T () S 8 T ({) N
+(35) # () S 8 T () S 16 T (antlr::CommonAST::initialize\(t\);) N
+0 T () S 8 T () S 16 T (_line = \(static_cast<ffAST*>\(t.get\(\)\)\)->_line;) N
+0 T () S 8 T (}) N
+0 T () N
+0 T () S 8 T () S
+(static) K
+( antlr::RefAST factory\(\)) p n
+(40) # () S 8 T ({) N
+0 T () S 8 T () S 16 T () S
+(return) K
+( antlr::RefAST\(new ffAST\);) p n
+0 T () S 8 T (}) N
+0 T () N
+0 T (};) N
+(45) # () N
+0 T (}) N
+0 T () N
+0 T () S
+(#endif) K
+(MyAST.h) (Page 1/1) (Nov 18, 03 19:38) title
+border
+/v 1 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#ifndef) K
+( __ff_utils_h__) p n
+0 T () S
+(#define) K
+( __ff_utils_h__) p n
+0 T () N
+0 T () S
+(#include) K
+( <string>) p n
+(5) # () N
+0 T (namespace ff {) N
+0 T () N
+0 T () S 8 T () S
+(char) k
+( styriStafur\(std::string takn\);) p n
+0 T () S 8 T () S
+(int) k
+( hex2) p
+(int) k
+(\() p
+(char) k
+( c\);) p n
+(10) # () N
+0 T (}) N
+0 T () N
+0 T () S
+(#endif) K n
+(utils.h) (Page 1/1) (Oct 09, 03 18:43) title
+border
+grestore
+(Printed by ) rhead
+(MyAST.h, utils.h) (2/3) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1) 3
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 2.699211 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+0 T (#include) K
+( ") p
+(utils.h) str
+(") p n
+0 T () N
+0 T () S
+(namespace) K
+( ff {) p n
+0 T () N
+(5) # () S 8 T () S
+(char) k
+( styriStafur\(std::string takn\) {) p n
+0 T () S 8 T () S 16 T () S
+(// assert \(takn[0] == '\\\\'\)) c n
+0 T () S
+() p 8 T () S 16 T () S
+(switch) K
+( \(takn[1]\) {) p n
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+($) str
+(':) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(// assert \(string.length\(\) == 4\)) c n
+(10) # () S
+() p 8 T () S 16 T () S 24 T () S
+(return) K
+( \() p
+(char) k
+(\) \() p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (  hex2) S
+(int) k
+(\(takn[2]\) << 4) p n
+0 T () S 8 T () S 16 T () S 24 T () S 32 T () S 40 T (| hex2) S
+(int) k
+(\(takn[3]\)\);) p n
+0 T () N
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+(c) str
+(': ) p
+(case) K
+( ') p
+(C) str
+(':  ) p
+(return) K
+( \() p
+(char) k
+(\) 13;) p n
+(15) # () S 8 T () S 16 T () S
+(case) K
+( ') p
+(b) str
+(': ) p
+(case) K
+( ') p
+(B) str
+(':) p 40 T () S
+(return) K
+( \() p
+(char) k
+(\)  7;) p n
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+(e) str
+(': ) p
+(case) K
+( ') p
+(E) str
+(':) p 40 T () S
+(return) K
+( \() p
+(char) k
+(\) 27;) p n
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+(f) str
+(': ) p
+(case) K
+( ') p
+(F) str
+(':) p 40 T () S
+(return) K
+( \() p
+(char) k
+(\) 12;) p n
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+(n) str
+(': ) p
+(case) K
+( ') p
+(N) str
+(':) p 40 T () S
+(return) K
+( \() p
+(char) k
+(\) 10;) p n
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+(t) str
+(': ) p
+(case) K
+( ') p
+(T) str
+(':) p 40 T () S
+(return) K
+( \() p
+(char) k
+(\)  9;) p n
+(20) # () N
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+(0) str
+(': ) p
+(case) K
+( ') p
+(1) str
+(': ) p
+(case) K
+( ') p
+(2) str
+(': ) p
+(case) K
+( ') p
+(4) str
+(':) p n
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+(5) str
+(': ) p
+(case) K
+( ') p
+(6) str
+(': ) p
+(case) K
+( ') p
+(7) str
+(': ) p
+(case) K
+( ') p
+(8) str
+(':) p n
+0 T () S 8 T () S 16 T () S
+(case) K
+( ') p
+(9) str
+(':) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(return) K
+( takn[1] - ') p
+(0) str
+(';) p n
+(25) # () N
+0 T () S 8 T () S 16 T () S
+(default) K
+(:) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(return) K
+( takn[1];) p n
+0 T () S 8 T () S 16 T (}) N
+0 T () S 8 T (}) N
+(30) # () N
+0 T () S 8 T () S
+(int) k
+( hex2) p
+(int) k
+(\() p
+(char) k
+( c\) {) p n
+0 T () S 8 T () S 16 T () S
+(if) K
+( \(c >= ') p
+(0) str
+(' && c <= ') p
+(9) str
+('\)) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(return) K
+( c - ') p
+(0) str
+(';) p n
+0 T () S 8 T () S 16 T () S
+(else) K
+( ) p
+(if) K
+( \(c >= ') p
+(a) str
+(' && c <= ') p
+(f) str
+('\)) p n
+(35) # () S 8 T () S 16 T () S 24 T () S
+(return) K
+( c - ') p
+(a) str
+(' + 10;) p n
+0 T () S 8 T () S 16 T () S
+(else) K
+( ) p
+(if) K
+( \(c >= ') p
+(A) str
+(' && c <= ') p
+(F) str
+('\)) p n
+0 T () S 8 T () S 16 T () S 24 T () S
+(return) K
+( c - ') p
+(A) str
+(' + 10;) p n
+0 T () S 8 T () S 16 T () S
+(else) K n
+0 T () S
+() p 8 T () S 16 T () S 24 T () S
+(return) K
+( 0;) p n
+(40) # () S 8 T (}) N
+0 T () N
+0 T (}) N
+0 T () N
+(utils.cpp) (Page 1/1) (Nov 02, 03 13:56) title
+border
+grestore
+(Printed by ) rhead
+(utils.cpp) (3/3) (Tuesday November 18, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+
+%%Trailer
+end
+%%EOF

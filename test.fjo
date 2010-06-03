@@ -1,0 +1,68 @@
+"forrit" < main
+{
+main ->
+	stef(;)
+	stofn
+		annað_fall(;),
+		bullumrugl(;),
+		x
+	stofnlok
+bullumrugl ->
+	stef(;)
+	stofn
+		skila 3
+	stofnlok
+}
+*
+{
+annað_fall ->
+	stef(;)
+	stofn
+		skila "Strengur"
+	stofnlok
+}
++
+{
+insertleft ->
+	stef(;u,x)
+	staðvær l:=x, v:=u
+	stofn
+		meðan l lykkja
+			v := v * \haus l,
+			l := \hali l,
+		lykkjulok,
+		skila v
+	stofnlok
+insertright ->
+	stef(;x,u)
+	staðvær z:=x, y:=[], v:=u
+	stofn
+		meðan z lykkja
+			y := \haus z : y,
+			z := \hali z,
+		lykkjulok,
+		meðan y lykkja
+			v := \haus y * v,
+			y := \hali y,
+		lykkjulok,
+		skila v
+	stofnlok
+}
+&
+{
+	;; tákn til að prófa lesgreini
+	1
+	-$124
+	"strengur með\nescape"
+	'\$63'
+	$af322
+	3453
+	-$ffe
+	--124
+	---3422.5433e+42
+	->>
+	->
+	:=
+	:==
+	---
+}
